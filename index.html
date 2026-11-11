@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Visor TFG</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root{--tinta:#1d1d1f;--gris:#6b6b70;--linea:#d9d9de;--fondo:#f4f4f6;--papel:#fff;--acento:#1f5fbf;--rojo:#d62828}
 *{box-sizing:border-box}
@@ -497,7 +497,7 @@ window.VISOR_ALMACEN = (() => {
     const p = await abrirPaquete(blob);
     const anot = nuevas((p.rondas || {})[ronda], await leer(`anot:${caso}|${ronda}`));
     await poner("ultimo", {caso, ronda});
-    actual = {caso, ronda, creado: p.creado};
+    actual = {caso, ronda, creado: p.creado, inicial: await leer(`anot:${caso}|${ronda}`).catch(() => undefined)};
     return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: false, colores: p.colores,
       laminas: p.laminas.map(l => ({nombre: l.nombre, fondo: l.fondo, tipo: l.tipo, W: l.W, H: l.H, dibujos: l.dibujos,
         url: l.svg ? URL.createObjectURL(new Blob([l.svg], {type: "image/svg+xml"})) : l.img})),
@@ -566,7 +566,29 @@ window.VISOR_ALMACEN = (() => {
     $i("mfEnviar").onclick = () => enviar(est);
     $i("mfSeguir").onclick = () => { $i("menuFin").style.display = "none"; };
     $i("mfOtras").onclick = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); }; }
-  return {cargar, guardar, terminar, textoTerminar: "Enviar"};
+  // «‹ Casos»: volver a la lista guardando, o descartando todo lo hecho desde que se abrió el caso
+  function volver(est, f){
+    let capa = $i("capaVolver");
+    if (!capa){
+      capa = document.createElement("div"); capa.id = "capaVolver";
+      capa.style.cssText = "position:fixed;inset:0;z-index:36;background:rgba(244,244,246,.97);display:flex;align-items:center;justify-content:center;padding:22px";
+      capa.innerHTML = `<div style="width:100%;max-width:440px;text-align:center">
+        <p style="font-size:16px;margin:0 0 6px"><b>Volver a la lista de casos</b></p>
+        <p style="font-size:14px;color:#6b6b70;margin:0 0 14px">Lo que has dibujado y escrito se guarda en el móvil al momento. Puedes quedártelo o descartar todo lo hecho desde que abriste este caso.</p>
+        <button id="cvGuardar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;font-weight:600;border-radius:10px;border:none;background:#1f5fbf;color:#fff">Guardar y volver</button>
+        <button id="cvDescartar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #d62828;background:#fff;color:#d62828">Descartar los cambios y volver</button>
+        <button id="cvSeguir" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #1f5fbf;background:#fff;color:#1f5fbf">Seguir corrigiendo</button></div>`;
+      document.body.appendChild(capa); }
+    capa.style.display = "flex";
+    const irse = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); };
+    $i("cvSeguir").onclick = () => { capa.style.display = "none"; };
+    $i("cvGuardar").onclick = async () => { await f.guardar(); irse(); };
+    $i("cvDescartar").onclick = async () => {
+      if (!confirm("¿Descartar todo lo que has dibujado y escrito desde que abriste este caso? No se puede deshacer.")) return;
+      f.descartar();
+      await poner(`anot:${actual.caso}|${actual.ronda}`, actual.inicial);
+      irse(); }; }
+  return {cargar, guardar, terminar, volver, textoTerminar: "Enviar"};
 })();
 
 </script>
@@ -677,7 +699,11 @@ const preguntar = m => EST ? true : confirm(m);
 const ALM = window.VISOR_ALMACEN || null;          // app del móvil: el almacén lo pone la app (IndexedDB y Drive)
 const horaLocal = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); };          // como el PC: hora local
 async function iniciar(){
-  if (ALM){ S.est = await ALM.cargar(); if (ALM.textoTerminar) $("terminar").textContent = ALM.textoTerminar; }
+  if (ALM){ S.est = await ALM.cargar(); if (ALM.textoTerminar) $("terminar").textContent = ALM.textoTerminar;
+    if (ALM.volver){
+      const b = document.createElement("button"); b.className = "volverCasos"; b.textContent = "‹ Casos"; b.title = "Volver a la lista de casos";
+      b.onclick = () => ALM.volver(S.est, {guardar: guardarYa, descartar: () => { clearTimeout(S.temporizador); S.sucio = false; }});
+      document.querySelector("header").prepend(b); } }
   else if (EST){ S.est = EST; try { Object.assign(S.est.anotaciones, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch (e){} }
   else { const r = await fetch("/api/estado"); S.est = await r.json();
     if (S.est.ok === false){ location.href = "/"; return; }
