@@ -65,7 +65,7 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 #cargando{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--linea);padding:4px 12px;border-radius:4px;font-size:13px;color:var(--gris);display:none}
 #capaFin{position:fixed;inset:0;background:rgba(255,255,255,.94);display:none;align-items:center;justify-content:center;z-index:20;text-align:center;font-size:16px}
 #capaFin div{max-width:560px}
-.solo-ver nav#herr .dib{display:none}
+.solo-ver nav#herr .dib,.solo-ver #nuevoPunto,.solo-ver nav#herr [data-h="deshacer"],.solo-ver nav#herr [data-h="rehacer"]{display:none}
 @media (max-width:1200px){body{grid-template-columns:auto 1fr 260px}}
 /* pantalla estrecha (panel del navegador, tableta en vertical): herramientas en una fila de iconos, lámina en medio y
    panel de texto debajo */
@@ -143,7 +143,7 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
 <div id="inicio">
   <div class="cab">
     <h1>Visor de corrección</h1>
-    <div class="sub">Propuesta B · tus correcciones sobre las láminas</div>
+    <div class="sub">Corrige la propuesta B · ve la A</div>
     <input id="buscar" type="search" placeholder="Buscar caso, obra, arquitecto o tipo" autocomplete="off">
   </div>
   <div id="lista"></div>
@@ -368,7 +368,9 @@ window.VISOR_ALMACEN = (() => {
   const horaLocal = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); };
   const puntos = anot => Object.values(anot || {}).reduce((n, d) => n + (d.puntos || []).filter(p =>
     (p.texto || "").trim() || (d.elementos || []).some(e => e.punto === p.id)).length, 0);
-  let actual = null, sel = null, rondaSel = null;
+  let actual = null, sel = null, rondaSel = null, lineaSel = "B";
+  const K = (caso, linea) => linea === "A" ? `${caso}_A` : caso;          // B: «CASO_021»; A: «CASO_021_A»
+  const lin = c => c.linea || "B";
 
   // ---- repositorio privado de datos en GitHub (v2.1): la lista de casos llega sola y las correcciones vuelven solas
   const REPO = "MaxiSagel/visor-tfg-datos-maxisagel", API = `https://api.github.com/repos/${REPO}/contents/`;
@@ -391,14 +393,15 @@ window.VISOR_ALMACEN = (() => {
     try { j = await (await gh("indice.json")).json(); }
     catch (e){ if (e.no) throw new Error("todavía no hay casos subidos al repositorio de datos (o la clave no es de ese repositorio)"); throw e; }
     const idx = await indice();
-    for (const c of j.casos){ const prev = idx[c.caso] || {};
-      idx[c.caso] = {...prev, caso: c.caso, info: c.info || {}, n: c.n, rondasPaq: c.rondasPaq || {}, remoto: c.archivo, creadoRemoto: c.creado, bytes: c.bytes, turnos: c.turnos || null}; }
+    for (const c of j.casos){ const l = c.linea || "B", k = K(c.caso, l), prev = idx[k] || {};
+      idx[k] = {...prev, caso: c.caso, linea: l, info: c.info || {}, n: c.n, rondasPaq: c.rondasPaq || {}, remoto: c.archivo, creadoRemoto: c.creado, bytes: c.bytes, turnos: c.turnos || null}; }
     await poner("indice", idx);
     return j.casos.length; }
   async function descargar(c){
     const blob = await (await gh(c.remoto)).blob();
-    await poner("paq:" + c.caso, blob);
-    const idx = await indice(); idx[c.caso] = {...idx[c.caso], creado: c.creadoRemoto}; await poner("indice", idx); }
+    const k = K(c.caso, lin(c));
+    await poner("paq:" + k, blob);
+    const idx = await indice(); idx[k] = {...idx[k], creado: c.creadoRemoto}; await poner("indice", idx); }
   const b64 = t => { const b = new TextEncoder().encode(t); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
   function tarjetaClave(lista){
     const d = document.createElement("div"); d.id = "vacio";
@@ -426,14 +429,14 @@ window.VISOR_ALMACEN = (() => {
     catch (e){ throw new Error(`No se pudo leer el archivo (${(blob.size / 1e6).toFixed(1)} MB): ${e.message}`); }
     if (p.formato === "tfg-movil-paquete/1"){ p.rondas = {[p.ronda]: p.anotaciones || {}}; p.formato = "tfg-movil-paquete/2"; }
     if (p.formato !== "tfg-movil-paquete/2") throw new Error("ese archivo no son láminas del visor (.visor)");
-    if (p.linea !== "B") throw new Error("la app es para corregir la propuesta B");
+    if (p.linea !== "B" && p.linea !== "A") throw new Error("propuesta desconocida");
     return p; }
   function nuevas(a, b){          // por lámina, la versión con fecha más reciente
     const out = {...(a || {})};
     for (const [k, v] of Object.entries(b || {})) if (!out[k] || (v.actualizado || "") > (out[k].actualizado || "")) out[k] = v;
     return out; }
   async function indice(){ return (await leer("indice").catch(() => null)) || {}; }
-  async function nPuntos(c, r){ return puntos(await leer(`anot:${c.caso}|${r}`).catch(() => null)) || (c.rondasPaq || {})[r] || 0; }
+  async function nPuntos(c, r){ return puntos(await leer(`anot:${K(c.caso, lin(c))}|${r}`).catch(() => null)) || (c.rondasPaq || {})[r] || 0; }
 
   async function anadir(archivos){
     const idx = await indice(), hechos = [], fallos = [];
@@ -441,10 +444,10 @@ window.VISOR_ALMACEN = (() => {
       try {
         $i("inicioMsg").className = ""; $i("inicioMsg").textContent = `Leyendo ${f.name}…`;
         const p = await abrirPaquete(f);
-        await poner("paq:" + p.caso, f);
-        idx[p.caso] = {caso: p.caso, info: p.info || {}, n: p.laminas.length, creado: p.creado,
+        await poner("paq:" + K(p.caso, p.linea), f);
+        idx[K(p.caso, p.linea)] = {caso: p.caso, linea: p.linea, info: p.info || {}, n: p.laminas.length, creado: p.creado,
           rondasPaq: Object.fromEntries(Object.entries(p.rondas || {}).map(([r, a]) => [r, puntos(a)])), turnos: p.turnos || null};
-        hechos.push(p.caso.replace("CASO_", ""));
+        hechos.push(p.caso.replace("CASO_", "") + (p.linea === "A" ? " (A)" : ""));
       } catch (e){ fallos.push(`${f.name}: ${e.message}`); }
     }
     await poner("indice", idx);
@@ -457,19 +460,25 @@ window.VISOR_ALMACEN = (() => {
     const yo = ++turnoLista;          // si llega otra petición mientras esta espera, gana la última
     const idx = await indice(), q = sinAcentos($i("buscar").value.trim()), lista = $i("lista");
     const enCurso = c => !!(c.turnos && c.turnos.estado === "en curso");
-    const casos = Object.values(idx).sort((a, b) => (enCurso(b) - enCurso(a)) || b.caso.localeCompare(a.caso));          // en curso, primero
+    const porCaso = {};
+    for (const e of Object.values(idx)){ const g = porCaso[e.caso] || (porCaso[e.caso] = {caso: e.caso, info: e.info || {}}); g[lin(e)] = e;
+      if (lin(e) === "B" || !g.info.obra) g.info = e.info || g.info; }
+    for (const g of Object.values(porCaso)){ const b = g.B || g.A; g.turnos = g.B ? g.B.turnos : null; g.n = b.n; }
+    const casos = Object.values(porCaso).sort((a, b) => (enCurso(b) - enCurso(a)) || b.caso.localeCompare(a.caso));          // en curso, primero
     const filas = [];
     for (const c of casos){
       const i = c.info || {}, texto = sinAcentos([c.caso, i.obra, i.autor, i.anio, i.tipo].join(" "));
       if (q && !q.split(/\s+/).every(t => texto.includes(t))) continue;
       const loc = [];
-      for (const r of RONDAS){ const n = await nPuntos(c, r); if (n) loc.push(`${r.replace("turno_", "t")}: ${n}`); }
+      if (c.B) for (const r of RONDAS){ const n = await nPuntos(c.B, r); if (n) loc.push(`${r.replace("turno_", "t")}: ${n}`); }
+      const desc = e => e && e.remoto && e.creado !== e.creadoRemoto;
+      const props = [c.B ? "B" : null, c.A ? "A (ver)" : null].filter(Boolean).join(" · ");
       const b = document.createElement("button"); b.className = "fila" + (sel === c.caso ? " sel" : "");
       const ab = c.turnos && c.turnos.abierto;
       if (enCurso(c)) b.style.borderColor = "#f0b37a";
       const curso = enCurso(c) ? `<span style="color:#b45309;font-weight:650">EN CURSO${ab ? " · " + ab.replace("turno_", "turno ") + " abierto" : ""}</span><br>` : "";
       b.innerHTML = `<div class="l1"><span class="cod">${esc(c.caso.replace("CASO_", ""))}</span><span class="obra">${esc(i.obra || c.caso)}</span></div>
-        <div class="meta">${curso}${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${c.remoto && c.creado !== c.creadoRemoto ? ` · se descarga al abrir (${((c.bytes || 0) / 1e6).toFixed(1)} MB)` : ""}${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
+        <div class="meta">${curso}${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas · ${props}${desc(c.B) || desc(c.A) ? " · se descarga al abrir" : ""}${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
       b.onclick = () => elegir(c);
       filas.push(b); }
     if (yo !== turnoLista) return;
@@ -479,25 +488,50 @@ window.VISOR_ALMACEN = (() => {
       const a = document.createElement("button"); a.className = "fila";
       a.style.cssText = "background:#fff7ed;border-color:#f0b37a;color:#7c3a0a";
       a.innerHTML = `<b>${esc(c.caso.replace("CASO_", "Caso "))}${c.info && c.info.obra ? " · " + esc(c.info.obra) : ""}</b><br>${esc(c.turnos.abierto.replace("turno_", "Turno "))} abierto: el orquestador espera tus correcciones. Toca para corregir.`;
-      a.onclick = () => elegir(c);
+      a.onclick = () => elegir(c, "B");
       lista.appendChild(a); }
     if (!casos.length){
       if (clave()) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Aún no hay casos en el repositorio de datos. En el ordenador: programa «Visor de corrección» → «Subir casos a la app».</div>`);
     } else if (!filas.length) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Ningún caso coincide con «${esc($i("buscar").value)}».</div>`);
     filas.forEach(b => lista.appendChild(b)); }
 
-  async function elegir(c){
-    sel = c.caso; const i = c.info || {};
+  async function elegir(g, linea){
+    sel = g.caso; const i = g.info || {};
+    lineaSel = linea || (lineaSel === "A" && g.A ? "A" : g.B ? "B" : "A");
+    const c = g[lineaSel];
     $i("elegido").style.display = "block";
-    $i("elegidoTit").innerHTML = `<b>${esc(c.caso.replace("CASO_", "Caso "))}${i.obra ? " · " + esc(i.obra) : ""}</b> — elige la ronda:`;
+    $i("elegidoTit").innerHTML = `<b>${esc(g.caso.replace("CASO_", "Caso "))}${i.obra ? " · " + esc(i.obra) : ""}</b>`;
+    let ls = $i("lineas");
+    if (!ls){ ls = document.createElement("div"); ls.id = "lineas"; ls.style.cssText = "display:flex;border:1px solid #1f5fbf;border-radius:9px;overflow:hidden;margin-bottom:8px";
+      $i("rondas").before(ls); }
+    ls.innerHTML = "";
+    for (const [l, t] of [["B", "B · la corriges tú"], ["A", "A · solo ver (IA)"]]){
+      const b = document.createElement("button"); b.textContent = t;
+      b.style.cssText = `flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;${l === "B" ? "border-right:1px solid #1f5fbf;" : ""}` +
+        (l === lineaSel ? "background:#1f5fbf;color:#fff" : g[l] ? "background:#fff;color:#1f5fbf" : "background:#fff;color:#b5b5ba");
+      b.disabled = !g[l]; b.onclick = () => elegir(g, l); ls.appendChild(b); }
     const rs = $i("rondas"); rs.innerHTML = "";
+    if (lineaSel === "A"){          // A: las rondas de la IA (crítica, revisiones), o solo las láminas si aún no hay marcas
+      const rr = Object.keys(c.rondasPaq || {});
+      const opc = rr.length ? rr : ["ver"];
+      rondaSel = opc.includes(rondaSel) ? rondaSel : opc[opc.length - 1];
+      for (const r of opc){
+        const n = (c.rondasPaq || {})[r] || 0, b = document.createElement("button"); b.className = r === rondaSel ? "act" : "";
+        const nombre = r === "ver" ? "Láminas" : r.replace("revision_f", "Revisión f").replace("critica", "Crítica").replace("_", " ");
+        b.innerHTML = `${esc(nombre)}<small>${r === "ver" ? "sin marcas de la IA" : n ? n + (n === 1 ? " marca" : " marcas") : "vacía"}</small>`;
+        b.onclick = () => { rondaSel = r; [...rs.children].forEach(x => x.classList.toggle("act", x === b)); };
+        rs.appendChild(b); }
+      $i("abrirCaso").textContent = "Ver (solo lectura)"; $i("abrirCaso").disabled = false; $i("abrirCaso").style.opacity = 1;
+      $i("elegidoTit").innerHTML += `<br><span style="color:#6b6b70;font-size:13px">La propuesta A aprende solo de la IA: aquí se ve, pero no se puede dibujar ni enviar nada.</span>`;
+      await pintarLista(); return; }
+    $i("abrirCaso").textContent = "Abrir";
     const ultimo = (await leer("ultimo").catch(() => null)) || {};
     const otras = Object.keys(c.rondasPaq || {}).filter(r => !RONDAS.includes(r));
     const todas = RONDAS.concat(otras), ns = {};
     for (const r of todas) ns[r] = await nPuntos(c, r);
     const tt = c.turnos && c.turnos.turnos ? c.turnos : null;          // caso llevado con turnos: se habilitan a medida que tocan
     rondaSel = tt ? (tt.abierto || RONDAS.slice().reverse().find(r => tt.turnos[r] === "cerrado") || null)
-      : ultimo.caso === c.caso ? ultimo.ronda : (RONDAS.slice().reverse().find(r => ns[r]) || "turno_1");
+      : ultimo.caso === c.caso && (ultimo.linea || "B") === "B" ? ultimo.ronda : (RONDAS.slice().reverse().find(r => ns[r]) || "turno_1");
     for (const r of todas){
       const et = tt ? tt.turnos[r] : null, n = ns[r];
       const b = document.createElement("button"); b.className = r === rondaSel ? "act" : "";
@@ -511,18 +545,19 @@ window.VISOR_ALMACEN = (() => {
     if (tt && tt.estado === "en curso" && !tt.abierto) $i("elegidoTit").innerHTML += `<br><span style="color:#b45309">En curso: ningún turno abierto ahora; se habilitará cuando toque.</span>`;
     await pintarLista(); }
 
-  async function sesion(caso, ronda){
-    const c = (await indice())[caso];
+  async function sesion(caso, ronda, linea = "B"){
+    const k = K(caso, linea), c = (await indice())[k];
     if (c && c.remoto && clave() && c.creado !== c.creadoRemoto){
       $i("inicioMsg").className = ""; $i("inicioMsg").textContent = `Descargando ${caso} (${((c.bytes || 0) / 1e6).toFixed(1)} MB)…`;
-      try { await descargar(c); } catch (e){ if (!(await leer("paq:" + caso))) throw e; } }
-    const blob = await leer("paq:" + caso);
+      try { await descargar(c); } catch (e){ if (!(await leer("paq:" + k))) throw e; } }
+    const blob = await leer("paq:" + k);
     if (!blob) throw new Error("ese caso ya no está en el móvil: añádelo otra vez");
     const p = await abrirPaquete(blob);
-    const anot = nuevas((p.rondas || {})[ronda], await leer(`anot:${caso}|${ronda}`));
-    await poner("ultimo", {caso, ronda});
-    actual = {caso, ronda, creado: p.creado, inicial: await leer(`anot:${caso}|${ronda}`).catch(() => undefined)};
-    return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: false, colores: p.colores,
+    const soloVer = p.linea === "A";
+    const anot = soloVer ? ((p.rondas || {})[ronda] || {}) : nuevas((p.rondas || {})[ronda], await leer(`anot:${k}|${ronda}`));
+    await poner("ultimo", {caso, ronda, linea: p.linea});
+    actual = {caso, ronda, linea: p.linea, creado: p.creado, inicial: soloVer ? undefined : await leer(`anot:${k}|${ronda}`).catch(() => undefined)};
+    return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: soloVer, colores: p.colores,
       laminas: p.laminas.map(l => ({nombre: l.nombre, fondo: l.fondo, tipo: l.tipo, W: l.W, H: l.H, dibujos: l.dibujos,
         url: l.svg ? URL.createObjectURL(new Blob([l.svg], {type: "image/svg+xml"})) : l.img})),
       anotaciones: anot}; }
@@ -535,7 +570,7 @@ window.VISOR_ALMACEN = (() => {
       $i("abrirCaso").onclick = async () => {
         if (!sel) return;
         $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Abriendo…";
-        try { const e = await sesion(sel, rondaSel); $i("inicio").style.display = "none"; $i("inicioMsg").textContent = ""; listo(e); }
+        try { const e = await sesion(sel, rondaSel, lineaSel); $i("inicio").style.display = "none"; $i("inicioMsg").textContent = ""; listo(e); }
         catch (err){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = err.message; } };
       $i("archivoEtq").textContent = "Añadir desde archivo (Drive)";
       const sub = document.querySelector("#inicio .sub");
@@ -552,9 +587,9 @@ window.VISOR_ALMACEN = (() => {
 
   async function cargar(){
     const volver = sessionStorage.getItem("visor-elegir"); sessionStorage.removeItem("visor-elegir");
-    if (!volver){ try { const u = await leer("ultimo"); if (u && u.caso) return await sesion(u.caso, u.ronda); } catch (e){} }
+    if (!volver){ try { const u = await leer("ultimo"); if (u && u.caso) return await sesion(u.caso, u.ronda, u.linea || "B"); } catch (e){} }
     return pantallaInicio(); }
-  async function guardar(datos, todas){ if (actual) await poner(`anot:${actual.caso}|${actual.ronda}`, todas); }
+  async function guardar(datos, todas){ if (actual && actual.linea !== "A") await poner(`anot:${K(actual.caso, actual.linea)}|${actual.ronda}`, todas); }
 
   async function enviar(est){
     const con = {};
@@ -581,7 +616,9 @@ window.VISOR_ALMACEN = (() => {
       else { const a = document.createElement("a"); a.href = URL.createObjectURL(archivo); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
       $i("finMsg").innerHTML = `<b>Listo:</b> ${n} lámina${n === 1 ? "" : "s"} en <i>${esc(nombre)}</i>.<br>Comprueba que lo has guardado en Google Drive → TFG_CLOUDE → movil → del_movil. Lo dibujado sigue en el móvil.`;
     } catch (e){ if (e.name !== "AbortError") $i("finMsg").textContent = "No se pudo enviar: " + e.message; } }
+  const aLista = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); };
   function terminar(est){
+    if (est.solo_ver) return aLista();
     $i("finMsg").innerHTML = `<b>${esc(est.caso.replace("CASO_", "Caso "))} · ${esc(est.ronda.replace("turno_", "turno "))}</b><br>` + (clave()
       ? "Envía tus correcciones al TFG: llegan a tu repositorio privado y el ordenador las importa."
       : "Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en TFG_CLOUDE → movil → del_movil.");
@@ -592,6 +629,7 @@ window.VISOR_ALMACEN = (() => {
     $i("mfOtras").onclick = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); }; }
   // «‹ Casos»: volver a la lista guardando, o descartando todo lo hecho desde que se abrió el caso
   function volver(est, f){
+    if (est.solo_ver) return aLista();
     let capa = $i("capaVolver");
     if (!capa){
       capa = document.createElement("div"); capa.id = "capaVolver";
@@ -610,9 +648,9 @@ window.VISOR_ALMACEN = (() => {
     $i("cvDescartar").onclick = async () => {
       if (!confirm("¿Descartar todo lo que has dibujado y escrito desde que abriste este caso? No se puede deshacer.")) return;
       f.descartar();
-      await poner(`anot:${actual.caso}|${actual.ronda}`, actual.inicial);
+      await poner(`anot:${K(actual.caso, actual.linea)}|${actual.ronda}`, actual.inicial);
       irse(); }; }
-  return {cargar, guardar, terminar, volver, textoTerminar: "Enviar"};
+  return {cargar, guardar, terminar, volver, get textoTerminar(){ return actual && actual.linea === "A" ? "Cerrar" : "Enviar"; }};
 })();
 
 </script>
