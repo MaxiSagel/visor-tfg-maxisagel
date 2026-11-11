@@ -4,13 +4,19 @@
 <meta charset="utf-8">
 <title>Visor TFG</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{if(localStorage.getItem("tfg-tema-v2")==="oscuro")document.documentElement.dataset.tema="oscuro"}catch(e){}</script>
 <style>
-:root{--tinta:#1d1d1f;--gris:#6b6b70;--linea:#d9d9de;--fondo:#f4f4f6;--papel:#fff;--acento:#1f5fbf;--rojo:#d62828}
+/* v5.7: misma estética que la web del TFG (Inter, blanco y negro, botones de borde fino) */
+@font-face{font-family:'Inter';font-style:normal;font-weight:300 600;font-display:swap;src:url(fuentes/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:'Inter';font-style:normal;font-weight:300 600;font-display:swap;src:url(fuentes/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+20A0-20AB,U+20AD-20C4,U+2C60-2C7F,U+A720-A7FF}
+:root{--tinta:#0a0a0a;--gris:#6e6e6e;--linea:#e6e6e6;--fondo:#f5f5f5;--papel:#fff;--acento:#0a0a0a;--rojo:#d62828}
+html[data-tema=oscuro]{filter:invert(1) hue-rotate(180deg)}
+html[data-tema=oscuro] #svg image{filter:invert(1) hue-rotate(180deg)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--tinta);background:var(--fondo)}
+html,body{margin:0;height:100%;font:14px/1.4 "Inter",system-ui,-apple-system,"Segoe UI",sans-serif;font-feature-settings:"ss01","cv11";-webkit-font-smoothing:antialiased;color:var(--tinta);background:var(--fondo)}
 body{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:auto 1fr 330px;grid-template-areas:"cab cab cab" "herr lienzo panel" "pie pie pie";overflow:hidden}
 header{grid-area:cab;display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--papel);border-bottom:1px solid var(--linea)}
-.flecha{font-size:22px;width:44px;height:36px;border:1px solid var(--linea);background:var(--papel);border-radius:4px;cursor:pointer;color:var(--tinta)}
+.flecha{font-size:22px;width:44px;height:36px;border:1px solid var(--linea);background:var(--papel);border-radius:999px;cursor:pointer;color:var(--tinta)}
 .flecha:disabled{opacity:.3;cursor:default}
 header .tit{min-width:0}
 #titulo{font-weight:600;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -18,14 +24,15 @@ header .tit{min-width:0}
 #info{color:var(--gris);font-size:12px}
 #guardado{margin-left:auto;font-size:12px;color:var(--gris);white-space:nowrap}
 #guardado.mal{color:var(--rojo);font-weight:600}
-#cerrarTurno{border:1px solid #1b7a34;background:#1b7a34;color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:600;order:3}
-#terminar{border:1px solid var(--tinta);background:var(--tinta);color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer}
+#cerrarTurno{border:1px solid var(--tinta);background:var(--tinta);color:#fff;padding:7px 16px;border-radius:999px;cursor:pointer;font-weight:600;order:3}
+#terminar{border:1px solid var(--tinta);background:var(--papel);color:var(--tinta);padding:7px 16px;border-radius:999px;cursor:pointer;font-weight:500}
+#terminar:hover{background:var(--tinta);color:#fff}
 nav#herr{grid-area:herr;background:var(--papel);border-right:1px solid var(--linea);padding:6px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden;width:156px}
 nav#herr button.h{white-space:nowrap}
-nav#herr .grupo{font-size:10px;color:var(--gris);margin:4px 2px 0;text-transform:uppercase;letter-spacing:.04em}
+nav#herr .grupo{font-size:10px;font-weight:600;color:var(--gris);margin:6px 2px 1px;text-transform:uppercase;letter-spacing:.14em}
 nav#herr button.h{display:flex;align-items:center;gap:6px;width:100%;padding:2px 6px;font-size:13px!important;border:1px solid transparent;background:none;border-radius:4px;cursor:pointer;font:inherit;text-align:left}
 nav#herr button.h:hover{background:var(--fondo)}
-nav#herr button.h.activa{border-color:var(--acento);background:#eaf0fb}
+nav#herr button.h.activa{border-color:var(--tinta);background:var(--tinta);color:#fff}
 nav#herr button.h svg{width:18px;height:18px;flex:none}
 nav#herr button.h kbd{margin-left:auto;font:11px ui-monospace,monospace;color:var(--gris)}
 .colores{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:2px}
@@ -33,7 +40,7 @@ nav#herr button.h kbd{margin-left:auto;font:11px ui-monospace,monospace;color:va
 .colores button.activa{outline:2px solid var(--tinta)}
 .fila{display:flex;gap:3px}
 .fila button{flex:1;padding:3px 0;border:1px solid var(--linea);background:var(--papel);border-radius:3px;cursor:pointer;font:inherit;font-size:12px}
-.fila button.activa{border-color:var(--acento);background:#eaf0fb}
+.fila button.activa{border-color:var(--tinta);background:var(--tinta);color:#fff}
 label.op{display:flex;align-items:center;gap:5px;font-size:12px;padding:1px 2px;cursor:pointer}
 #props{border-top:1px solid var(--linea);margin-top:6px;padding-top:4px;font-size:12px;display:none}
 #props select,#props input[type=number]{width:100%;font:inherit;margin:2px 0 4px}
@@ -41,14 +48,14 @@ main{grid-area:lienzo;position:relative;overflow:hidden;background:#e9e9ec}
 #svg{width:100%;height:100%;display:block;touch-action:none;user-select:none}
 #svg.panear{cursor:grab}#svg.dibujar{cursor:crosshair}
 aside{grid-area:panel;background:var(--papel);border-left:1px solid var(--linea);display:flex;flex-direction:column;min-height:0}
-aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris);margin:10px 12px 4px}
+aside h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--gris);margin:10px 12px 4px}
 aside textarea{font:inherit;width:100%;border:1px solid var(--linea);border-radius:4px;padding:6px;resize:vertical}
 #comentario{margin:0 12px;width:calc(100% - 24px);min-height:84px}
 .cabpuntos{display:flex;align-items:center;justify-content:space-between;margin-right:12px}
 .cabpuntos button,.acc button{font:inherit;font-size:12px;border:1px solid var(--linea);background:var(--papel);padding:3px 8px;border-radius:3px;cursor:pointer}
 #puntos{flex:1;overflow-y:auto;padding:0 12px 10px;min-height:0}
 .punto{border:1px solid var(--linea);border-left:4px solid var(--linea);border-radius:4px;padding:6px;margin-bottom:6px;cursor:pointer}
-.punto.activo{border-left-color:var(--acento);background:#f6f9ff}
+.punto.activo{border-left-color:var(--tinta);background:var(--fondo)}
 .punto .cab{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--gris);margin-bottom:3px}
 .punto .cab b{color:var(--tinta)}
 .punto .cab .quitar{margin-left:auto;border:none;background:none;color:var(--gris);cursor:pointer;text-decoration:underline;font:inherit;font-size:12px}
@@ -59,7 +66,7 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 #barra{display:contents}
 #ant{order:1}#contador{order:1;font-size:13px;color:var(--gris);white-space:nowrap}#sig{order:1}#terminar{order:3}
 #bajarTeclado{position:fixed;right:8px;display:none;z-index:30;font:inherit;font-size:15px;padding:8px 14px;border:1px solid var(--acento);background:#fff;color:var(--acento);border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-#entradaTexto{position:absolute;display:none;min-width:220px;font:15px system-ui;border:2px solid var(--acento);border-radius:3px;padding:4px;background:#fff;z-index:5}
+#entradaTexto{position:absolute;display:none;min-width:220px;font:15px "Inter",system-ui;border:2px solid var(--acento);border-radius:3px;padding:4px;background:#fff;z-index:5}
 #trazoBotones{position:absolute;top:10px;left:10px;display:none;gap:6px;z-index:4}
 #trazoBotones button{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--acento);background:#fff;color:var(--acento);border-radius:4px;cursor:pointer}
 .volverCasos{font:inherit;font-size:14px;border:none;background:none;color:var(--acento);cursor:pointer;padding:6px 8px 6px 0;white-space:nowrap}
@@ -111,32 +118,35 @@ header{padding-top:max(6px, env(safe-area-inset-top))!important}
 html.ios header{padding-top:calc(30px + env(safe-area-inset-top))!important}
 html.ios #inicio .cab{padding-top:calc(36px + env(safe-area-inset-top))!important}
 html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
+#inicio,#menuFin,#capaVolver{font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
+#inicio h1{text-transform:uppercase;letter-spacing:-.03em;font-weight:600!important}
+.boton,.secundario,#menuFin button,#rondas{border-radius:999px!important}
 #inicio{position:fixed;inset:0;z-index:40;background:#f4f4f6;display:none;flex-direction:column;overflow:hidden}
 #inicio .cab{background:#fff;border-bottom:1px solid #d9d9de;padding:max(14px, env(safe-area-inset-top)) 18px 12px}
 #inicio h1{font-size:22px;margin:0}#inicio .sub{color:#6b6b70;font-size:14px;margin:2px 0 10px}
 #buscar{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid #d9d9de;border-radius:10px;background:#f4f4f6;outline:none}
-#buscar:focus{border-color:#1f5fbf;background:#fff}
+#buscar:focus{border-color:#0a0a0a;background:#fff}
 #lista{flex:1;overflow-y:auto;padding:8px 12px 12px;-webkit-overflow-scrolling:touch}
 .fila{display:block;width:100%;text-align:left;font:inherit;background:#fff;border:1px solid #e4e4e8;border-radius:12px;padding:11px 13px;margin:0 0 8px;color:#1d1d1f}
-.fila.sel{border-color:#1f5fbf;box-shadow:0 0 0 2px #1f5fbf inset}
+.fila.sel{border-color:#0a0a0a;box-shadow:0 0 0 2px #0a0a0a inset}
 .fila .l1{display:flex;gap:8px;align-items:baseline}.fila .cod{font-size:13px;color:#6b6b70;font-variant-numeric:tabular-nums}
 .fila .obra{font-size:16px;font-weight:600}.fila .meta{font-size:13px;color:#6b6b70;margin-top:3px}
-.fila .hay{color:#1f5fbf}
+.fila .hay{color:#0a0a0a}
 #vacio{color:#6b6b70;font-size:15px;padding:18px 8px;line-height:1.45}
 #pie0{background:#fff;border-top:1px solid #d9d9de;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
 #elegido{display:none;margin-bottom:10px}
 #elegido .tit{font-size:14px;color:#6b6b70;margin-bottom:6px}#elegido .tit b{color:#1d1d1f}
-#rondas{display:flex;border:1px solid #1f5fbf;border-radius:9px;overflow:hidden;margin-bottom:8px}
-#rondas button{flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;border-right:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
-#rondas button:last-child{border-right:none}#rondas button.act{background:#1f5fbf;color:#fff}
+#rondas{display:flex;border:1px solid #0a0a0a;border-radius:9px;overflow:hidden;margin-bottom:8px}
+#rondas button{flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;border-right:1px solid #0a0a0a;background:#fff;color:#0a0a0a}
+#rondas button:last-child{border-right:none}#rondas button.act{background:#0a0a0a;color:#fff}
 #rondas button small{display:block;font-size:11px;opacity:.8}
-.boton{display:block;width:100%;padding:13px;font:inherit;font-size:17px;font-weight:600;color:#fff;background:#1f5fbf;border:none;border-radius:10px;text-align:center}
-.secundario{display:block;width:100%;padding:11px;font:inherit;font-size:15px;color:#1f5fbf;background:#fff;border:1px solid #1f5fbf;border-radius:10px;text-align:center}
+.boton{display:block;width:100%;padding:13px;font:inherit;font-size:17px;font-weight:600;color:#fff;background:#0a0a0a;border:none;border-radius:10px;text-align:center}
+.secundario{display:block;width:100%;padding:11px;font:inherit;font-size:15px;color:#0a0a0a;background:#fff;border:1px solid #0a0a0a;border-radius:10px;text-align:center}
 #inicioMsg{font-size:14px;margin:6px 2px 0}#inicioMsg.error{color:#d62828;font-weight:600}
 #menuFin{position:fixed;inset:0;z-index:35;background:rgba(244,244,246,.97);display:none;align-items:center;justify-content:center;padding:22px}
 #menuFin .caja{width:100%;max-width:440px;text-align:center}
-#menuFin button{display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
-#menuFin button.prim{background:#1f5fbf;color:#fff;font-weight:600}
+#menuFin button{display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #0a0a0a;background:#fff;color:#0a0a0a}
+#menuFin button.prim{background:#0a0a0a;color:#fff;font-weight:600}
 #menuFin p{color:#1d1d1f;font-size:15px;line-height:1.45}
 </style>
 </head>
@@ -429,7 +439,7 @@ window.VISOR_ALMACEN = (() => {
       <input id="campoCodigo" autocomplete="off" autocapitalize="characters" placeholder="XXXXX-XXXXX" style="width:100%;font-size:18px;letter-spacing:.08em;padding:10px;margin:10px 0 8px;border:1px solid #d9d9de;border-radius:8px">
       <button class="boton" id="entrarCodigo">Entrar</button>
       <div style="margin-top:8px;font-size:13px">Te lo da el autor del TFG. Con él ves los casos y puedes corregir la propuesta B; tus correcciones quedan a tu nombre.</div>
-      <details style="margin-top:16px"><summary style="color:#1f5fbf">Soy el autor y quiero usar mi clave de GitHub</summary><br>
+      <details style="margin-top:16px"><summary style="color:#0a0a0a">Soy el autor y quiero usar mi clave de GitHub</summary><br>
       Los casos están en tu repositorio privado de GitHub <i>visor-tfg-datos-maxisagel</i>. La app necesita una clave de acceso a ese repositorio (solo la primera vez):<br>
       1. Toca <a href="${NUEVA_CLAVE}" target="_blank" rel="noopener">crear la clave en GitHub</a>.<br>
       2. Nombre: «Visor TFG». Caducidad: la que quieras (por ejemplo, 1 año).<br>
@@ -534,13 +544,13 @@ window.VISOR_ALMACEN = (() => {
     $i("elegido").style.display = "block";
     $i("elegidoTit").innerHTML = `<b>${esc(g.caso.replace("CASO_", "Caso "))}${i.obra ? " · " + esc(i.obra) : ""}</b>`;
     let ls = $i("lineas");
-    if (!ls){ ls = document.createElement("div"); ls.id = "lineas"; ls.style.cssText = "display:flex;border:1px solid #1f5fbf;border-radius:9px;overflow:hidden;margin-bottom:8px";
+    if (!ls){ ls = document.createElement("div"); ls.id = "lineas"; ls.style.cssText = "display:flex;border:1px solid #0a0a0a;border-radius:9px;overflow:hidden;margin-bottom:8px";
       $i("rondas").before(ls); }
     ls.innerHTML = "";
     for (const [l, t] of [["B", "B · la corriges tú"], ["A", "A · solo ver (IA)"]]){
       const b = document.createElement("button"); b.textContent = t;
-      b.style.cssText = `flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;${l === "B" ? "border-right:1px solid #1f5fbf;" : ""}` +
-        (l === lineaSel ? "background:#1f5fbf;color:#fff" : g[l] ? "background:#fff;color:#1f5fbf" : "background:#fff;color:#b5b5ba");
+      b.style.cssText = `flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;${l === "B" ? "border-right:1px solid #0a0a0a;" : ""}` +
+        (l === lineaSel ? "background:#0a0a0a;color:#fff" : g[l] ? "background:#fff;color:#0a0a0a" : "background:#fff;color:#b5b5ba");
       b.disabled = !g[l]; b.onclick = () => elegir(g, l); ls.appendChild(b); }
     const rs = $i("rondas"); rs.innerHTML = "";
     if (lineaSel === "A"){          // A: las rondas de la IA (crítica, revisiones), o solo las láminas si aún no hay marcas
@@ -600,7 +610,7 @@ window.VISOR_ALMACEN = (() => {
     const sub = document.querySelector("#inicio .sub"); if (!sub) return;
     const p = persona();
     sub.innerHTML = codigo() && p ? `Hola, ${esc(p.nombre)}${p.rol !== "autor" ? " · tus correcciones van a tu nombre" : ""}` : clave() ? "Autor · clave de GitHub" : "Corrige la propuesta B · ve la A";
-    if (conectado()){ const a = document.createElement("a"); a.href = "#"; a.style.cssText = "margin-left:8px;color:#1f5fbf"; a.textContent = "salir";
+    if (conectado()){ const a = document.createElement("a"); a.href = "#"; a.style.cssText = "margin-left:8px;color:#0a0a0a"; a.textContent = "salir";
       a.onclick = ev => { ev.preventDefault(); if (!confirm("¿Salir en este móvil? Lo dibujado y no enviado se conserva.")) return;
         ls_("visor-codigo", ""); ls_("visor-persona", ""); ponerClave(""); pintarCabecera(); pintarLista(); };
       sub.appendChild(a); } }
@@ -684,9 +694,9 @@ window.VISOR_ALMACEN = (() => {
       capa.innerHTML = `<div style="width:100%;max-width:440px;text-align:center">
         <p style="font-size:16px;margin:0 0 6px"><b>Volver a la lista de casos</b></p>
         <p style="font-size:14px;color:#6b6b70;margin:0 0 14px">Lo que has dibujado y escrito se guarda en el móvil al momento. Puedes quedártelo o descartar todo lo hecho desde que abriste este caso.</p>
-        <button id="cvGuardar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;font-weight:600;border-radius:10px;border:none;background:#1f5fbf;color:#fff">Guardar y volver</button>
-        <button id="cvDescartar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #d62828;background:#fff;color:#d62828">Descartar los cambios y volver</button>
-        <button id="cvSeguir" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #1f5fbf;background:#fff;color:#1f5fbf">Seguir corrigiendo</button></div>`;
+        <button id="cvGuardar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;font-weight:600;border-radius:999px;border:none;background:#0a0a0a;color:#fff">Guardar y volver</button>
+        <button id="cvDescartar" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:999px;border:1px solid #d62828;background:#fff;color:#d62828">Descartar los cambios y volver</button>
+        <button id="cvSeguir" style="display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:999px;border:1px solid #0a0a0a;background:#fff;color:#0a0a0a">Seguir corrigiendo</button></div>`;
       document.body.appendChild(capa); }
     capa.style.display = "flex";
     const irse = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); };
