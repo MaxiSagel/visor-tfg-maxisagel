@@ -147,7 +147,7 @@ header{padding-top:max(6px, env(safe-area-inset-top))!important}
       <div id="rondas"></div>
       <button class="boton" id="abrirCaso">Abrir</button>
     </div>
-    <label class="secundario" for="archivo">Añadir o actualizar casos</label>
+    <label class="secundario" for="archivo" id="archivoEtq">Añadir o actualizar casos</label>
     <input type="file" id="archivo" multiple style="display:none">
     <div id="inicioMsg"></div>
   </div>
@@ -364,6 +364,56 @@ window.VISOR_ALMACEN = (() => {
     (p.texto || "").trim() || (d.elementos || []).some(e => e.punto === p.id)).length, 0);
   let actual = null, sel = null, rondaSel = null;
 
+  // ---- repositorio privado de datos en GitHub (v2.1): la lista de casos llega sola y las correcciones vuelven solas
+  const REPO = "MaxiSagel/visor-tfg-datos-maxisagel", API = `https://api.github.com/repos/${REPO}/contents/`;
+  const NUEVA_CLAVE = "https://github.com/settings/personal-access-tokens/new";
+  const clave = () => { try { return localStorage.getItem("visor-clave") || ""; } catch (e){ return ""; } };
+  const ponerClave = v => { try { v ? localStorage.setItem("visor-clave", v) : localStorage.removeItem("visor-clave"); } catch (e){} };
+  async function gh(ruta, opciones = {}){
+    let r;
+    try {
+      r = await fetch(API + ruta, {cache: "no-store", ...opciones, headers: {Authorization: `Bearer ${clave()}`,
+        "X-GitHub-Api-Version": "2022-11-28", Accept: "application/vnd.github.raw+json", ...(opciones.headers || {})}});
+    } catch (e){ throw new Error("sin conexión con GitHub"); }
+    if (r.status === 401) throw new Error("la clave de GitHub no es válida o ha caducado");
+    if (r.status === 403) throw new Error("la clave no tiene permiso de escritura en el repositorio de datos");
+    if (r.status === 404) { const e = new Error("no se encuentra en el repositorio de datos (¿la clave es de visor-tfg-datos-maxisagel?)"); e.no = true; throw e; }
+    if (!r.ok) throw new Error(`GitHub respondió ${r.status}`);
+    return r; }
+  async function sincronizar(){
+    let j;
+    try { j = await (await gh("indice.json")).json(); }
+    catch (e){ if (e.no) throw new Error("todavía no hay casos subidos al repositorio de datos (o la clave no es de ese repositorio)"); throw e; }
+    const idx = await indice();
+    for (const c of j.casos){ const prev = idx[c.caso] || {};
+      idx[c.caso] = {...prev, caso: c.caso, info: c.info || {}, n: c.n, rondasPaq: c.rondasPaq || {}, remoto: c.archivo, creadoRemoto: c.creado, bytes: c.bytes}; }
+    await poner("indice", idx);
+    return j.casos.length; }
+  async function descargar(c){
+    const blob = await (await gh(c.remoto)).blob();
+    await poner("paq:" + c.caso, blob);
+    const idx = await indice(); idx[c.caso] = {...idx[c.caso], creado: c.creadoRemoto}; await poner("indice", idx); }
+  const b64 = t => { const b = new TextEncoder().encode(t); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
+  function tarjetaClave(lista){
+    const d = document.createElement("div"); d.id = "vacio";
+    d.innerHTML = `<b>Conecta la app con tus casos</b><br><br>
+      Los casos están en tu repositorio privado de GitHub <i>visor-tfg-datos-maxisagel</i>. La app necesita una clave de acceso a ese repositorio (solo la primera vez):<br>
+      1. Toca <a href="${NUEVA_CLAVE}" target="_blank" rel="noopener">crear la clave en GitHub</a>.<br>
+      2. Nombre: «Visor TFG». Caducidad: la que quieras (por ejemplo, 1 año).<br>
+      3. Repository access → <b>Only select repositories</b> → visor-tfg-datos-maxisagel.<br>
+      4. Permissions → Repository permissions → <b>Contents: Read and write</b>.<br>
+      5. Generate token, cópiala y pégala aquí:<br>
+      <input id="campoClave" type="password" autocomplete="off" placeholder="github_pat_…" style="width:100%;font-size:16px;padding:10px;margin:10px 0 8px;border:1px solid #d9d9de;border-radius:8px">
+      <button class="boton" id="guardarClave">Guardar clave</button>
+      <div style="margin-top:10px;font-size:13px">La clave se queda solo en este móvil. Sin ella también puedes «Añadir desde archivo» (Drive).</div>`;
+    lista.appendChild(d);
+    d.querySelector("#guardarClave").onclick = async () => {
+      const v = d.querySelector("#campoClave").value.trim(); if (!v) return;
+      ponerClave(v); $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Comprobando la clave…";
+      try { const n = await sincronizar(); $i("inicioMsg").textContent = `Conectado: ${n} casos.`; }
+      catch (e){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = e.message; if (/clave/.test(e.message)) ponerClave(""); }
+      await pintarLista(); }; }
+
   async function abrirPaquete(blob){
     let p;
     try { p = JSON.parse(TFGgzip.texto(await blob.arrayBuffer())); }
@@ -409,14 +459,15 @@ window.VISOR_ALMACEN = (() => {
       for (const r of RONDAS){ const n = await nPuntos(c, r); if (n) loc.push(`${r.replace("turno_", "t")}: ${n}`); }
       const b = document.createElement("button"); b.className = "fila" + (sel === c.caso ? " sel" : "");
       b.innerHTML = `<div class="l1"><span class="cod">${esc(c.caso.replace("CASO_", ""))}</span><span class="obra">${esc(i.obra || c.caso)}</span></div>
-        <div class="meta">${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
+        <div class="meta">${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${c.remoto && c.creado !== c.creadoRemoto ? ` · se descarga al abrir (${((c.bytes || 0) / 1e6).toFixed(1)} MB)` : ""}${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
       b.onclick = () => elegir(c);
       filas.push(b); }
     if (yo !== turnoLista) return;
     lista.innerHTML = "";
+    if (!clave()) tarjetaClave(lista);
     if (!casos.length){
-      lista.innerHTML = `<div id="vacio"><b>Aún no hay casos en el móvil.</b><br><br>1. En el ordenador, programa «Visor de corrección» → «Preparar todos para el móvil».<br>2. Aquí, «Añadir o actualizar casos» → Explora → Google Drive → TFG_CLOUDE → movil → para_el_movil → Selecciona → marca todos → Abre.<br><br>Al acabar de corregir: «Enviar» → «Enviar a Drive» → guárdalo en TFG_CLOUDE → movil → del_movil, y en el ordenador «Importar del móvil».</div>`;
-    } else if (!filas.length) lista.innerHTML = `<div id="vacio">Ningún caso coincide con «${esc($i("buscar").value)}».</div>`;
+      if (clave()) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Aún no hay casos en el repositorio de datos. En el ordenador: programa «Visor de corrección» → «Subir casos a la app».</div>`);
+    } else if (!filas.length) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Ningún caso coincide con «${esc($i("buscar").value)}».</div>`);
     filas.forEach(b => lista.appendChild(b)); }
 
   async function elegir(c){
@@ -437,6 +488,10 @@ window.VISOR_ALMACEN = (() => {
     await pintarLista(); }
 
   async function sesion(caso, ronda){
+    const c = (await indice())[caso];
+    if (c && c.remoto && clave() && c.creado !== c.creadoRemoto){
+      $i("inicioMsg").className = ""; $i("inicioMsg").textContent = `Descargando ${caso} (${((c.bytes || 0) / 1e6).toFixed(1)} MB)…`;
+      try { await descargar(c); } catch (e){ if (!(await leer("paq:" + caso))) throw e; } }
     const blob = await leer("paq:" + caso);
     if (!blob) throw new Error("ese caso ya no está en el móvil: añádelo otra vez");
     const p = await abrirPaquete(blob);
@@ -458,7 +513,18 @@ window.VISOR_ALMACEN = (() => {
         $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Abriendo…";
         try { const e = await sesion(sel, rondaSel); $i("inicio").style.display = "none"; $i("inicioMsg").textContent = ""; listo(e); }
         catch (err){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = err.message; } };
-      pintarLista(); }); }
+      $i("archivoEtq").textContent = "Añadir desde archivo (Drive)";
+      const sub = document.querySelector("#inicio .sub");
+      if (sub && !sub.querySelector("a")){ const a = document.createElement("a"); a.href = "#"; a.style.cssText = "margin-left:8px;color:#1f5fbf";
+        a.textContent = "clave de GitHub"; a.onclick = ev => { ev.preventDefault();
+          if (clave() && confirm("¿Quitar la clave de GitHub de este móvil? Podrás pegar otra.")){ ponerClave(""); pintarLista(); } else if (!clave()) pintarLista(); };
+        sub.appendChild(a); }
+      pintarLista().then(async () => {
+        if (!clave()) return;
+        $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Actualizando la lista de casos…";
+        try { await sincronizar(); $i("inicioMsg").textContent = ""; }
+        catch (e){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = e.message + " · se muestran los casos guardados en el móvil"; }
+        await pintarLista(); }); }); }
 
   async function cargar(){
     const volver = sessionStorage.getItem("visor-elegir"); sessionStorage.removeItem("visor-elegir");
@@ -477,13 +543,25 @@ window.VISOR_ALMACEN = (() => {
       paquete_creado: actual.creado, enviado: local, anotaciones: con};
     const nombre = `${est.caso}_${est.linea}_${est.ronda}__movil_${sello}.json`;
     const archivo = new File([JSON.stringify(datos)], nombre, {type: "application/json"});
+    if (clave()){
+      $i("finMsg").textContent = "Enviando…";
+      try {
+        await gh("correcciones/" + nombre, {method: "PUT", headers: {Accept: "application/vnd.github+json", "Content-Type": "application/json"},
+          body: JSON.stringify({message: `Correcciones del móvil · ${est.caso} · ${est.ronda}`, content: b64(JSON.stringify(datos)), branch: "main"})});
+        $i("finMsg").innerHTML = `<b>Enviado al TFG:</b> ${n} lámina${n === 1 ? "" : "s"} de ${esc(est.caso)} · ${esc(est.ronda.replace("turno_", "turno "))}.<br>En el ordenador, «Importar del móvil» lo recoge para la IA. Lo dibujado sigue en el móvil.`;
+        return;
+      } catch (e){ $i("finMsg").textContent = "No se pudo enviar a GitHub (" + e.message + "). Prueba de nuevo o guárdalo en Drive:"; }
+    }
     try {
       if (navigator.canShare && navigator.canShare({files: [archivo]})) await navigator.share({files: [archivo], title: nombre});
       else { const a = document.createElement("a"); a.href = URL.createObjectURL(archivo); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
       $i("finMsg").innerHTML = `<b>Listo:</b> ${n} lámina${n === 1 ? "" : "s"} en <i>${esc(nombre)}</i>.<br>Comprueba que lo has guardado en Google Drive → TFG_CLOUDE → movil → del_movil. Lo dibujado sigue en el móvil.`;
     } catch (e){ if (e.name !== "AbortError") $i("finMsg").textContent = "No se pudo enviar: " + e.message; } }
   function terminar(est){
-    $i("finMsg").innerHTML = `<b>${esc(est.caso.replace("CASO_", "Caso "))} · ${esc(est.ronda.replace("turno_", "turno "))}</b><br>Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en TFG_CLOUDE → movil → del_movil.`;
+    $i("finMsg").innerHTML = `<b>${esc(est.caso.replace("CASO_", "Caso "))} · ${esc(est.ronda.replace("turno_", "turno "))}</b><br>` + (clave()
+      ? "Envía tus correcciones al TFG: llegan a tu repositorio privado y el ordenador las importa."
+      : "Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en TFG_CLOUDE → movil → del_movil.");
+    $i("mfEnviar").textContent = clave() ? "Enviar al TFG" : "Enviar a Drive";
     $i("menuFin").style.display = "flex";
     $i("mfEnviar").onclick = () => enviar(est);
     $i("mfSeguir").onclick = () => { $i("menuFin").style.display = "none"; };
