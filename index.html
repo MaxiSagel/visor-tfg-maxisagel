@@ -61,6 +61,7 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 #entradaTexto{position:absolute;display:none;min-width:220px;font:15px system-ui;border:2px solid var(--acento);border-radius:3px;padding:4px;background:#fff;z-index:5}
 #trazoBotones{position:absolute;top:10px;left:10px;display:none;gap:6px;z-index:4}
 #trazoBotones button{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--acento);background:#fff;color:var(--acento);border-radius:4px;cursor:pointer}
+.volverCasos{font:inherit;font-size:14px;border:none;background:none;color:var(--acento);cursor:pointer;padding:6px 8px 6px 0;white-space:nowrap}
 #cargando{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--linea);padding:4px 12px;border-radius:4px;font-size:13px;color:var(--gris);display:none}
 #capaFin{position:fixed;inset:0;background:rgba(255,255,255,.94);display:none;align-items:center;justify-content:center;z-index:20;text-align:center;font-size:16px}
 #capaFin div{max-width:560px}
@@ -94,7 +95,7 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 .solo-ver textarea{background:var(--fondo)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1f5fbf">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -103,46 +104,59 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 <link rel="icon" href="icono-192.png">
 <style>
 header{padding-top:max(6px, env(safe-area-inset-top))!important}
-#inicio{position:fixed;inset:0;z-index:40;background:#fff;display:none;flex-direction:column;align-items:center;overflow-y:auto;
-  padding:max(24px, env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom))}
-#inicio .caja{width:100%;max-width:520px}
-#inicio h1{font-size:22px;margin:8px 0 4px}#inicio p{color:#6b6b70;font-size:15px;margin:6px 0}
-#inicio .abrir{display:block;width:100%;margin:18px 0 8px;padding:14px;font:inherit;font-size:17px;font-weight:600;
-  color:#fff;background:#1f5fbf;border:none;border-radius:8px;text-align:center}
-#inicio .previa{display:block;width:100%;text-align:left;padding:12px;margin:6px 0;font:inherit;font-size:15px;
-  background:#fff;border:1px solid #d9d9de;border-radius:8px;color:#1d1d1f}
-#inicio .previa small{display:block;color:#6b6b70;font-size:13px;margin-top:2px}
-#inicio .error{color:#d62828;font-weight:600}
-#inicio ol{padding-left:20px;color:#1d1d1f;font-size:15px}#inicio li{margin:5px 0}
-#menuFin{position:fixed;inset:0;z-index:35;background:rgba(255,255,255,.97);display:none;align-items:center;justify-content:center;padding:22px}
+#inicio{position:fixed;inset:0;z-index:40;background:#f4f4f6;display:none;flex-direction:column;overflow:hidden}
+#inicio .cab{background:#fff;border-bottom:1px solid #d9d9de;padding:max(14px, env(safe-area-inset-top)) 18px 12px}
+#inicio h1{font-size:22px;margin:0}#inicio .sub{color:#6b6b70;font-size:14px;margin:2px 0 10px}
+#buscar{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid #d9d9de;border-radius:10px;background:#f4f4f6;outline:none}
+#buscar:focus{border-color:#1f5fbf;background:#fff}
+#lista{flex:1;overflow-y:auto;padding:8px 12px 12px;-webkit-overflow-scrolling:touch}
+.fila{display:block;width:100%;text-align:left;font:inherit;background:#fff;border:1px solid #e4e4e8;border-radius:12px;padding:11px 13px;margin:0 0 8px;color:#1d1d1f}
+.fila.sel{border-color:#1f5fbf;box-shadow:0 0 0 2px #1f5fbf inset}
+.fila .l1{display:flex;gap:8px;align-items:baseline}.fila .cod{font-size:13px;color:#6b6b70;font-variant-numeric:tabular-nums}
+.fila .obra{font-size:16px;font-weight:600}.fila .meta{font-size:13px;color:#6b6b70;margin-top:3px}
+.fila .hay{color:#1f5fbf}
+#vacio{color:#6b6b70;font-size:15px;padding:18px 8px;line-height:1.45}
+#pie0{background:#fff;border-top:1px solid #d9d9de;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+#elegido{display:none;margin-bottom:10px}
+#elegido .tit{font-size:14px;color:#6b6b70;margin-bottom:6px}#elegido .tit b{color:#1d1d1f}
+#rondas{display:flex;border:1px solid #1f5fbf;border-radius:9px;overflow:hidden;margin-bottom:8px}
+#rondas button{flex:1;font:inherit;font-size:14px;padding:9px 2px;border:none;border-right:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
+#rondas button:last-child{border-right:none}#rondas button.act{background:#1f5fbf;color:#fff}
+#rondas button small{display:block;font-size:11px;opacity:.8}
+.boton{display:block;width:100%;padding:13px;font:inherit;font-size:17px;font-weight:600;color:#fff;background:#1f5fbf;border:none;border-radius:10px;text-align:center}
+.secundario{display:block;width:100%;padding:11px;font:inherit;font-size:15px;color:#1f5fbf;background:#fff;border:1px solid #1f5fbf;border-radius:10px;text-align:center}
+#inicioMsg{font-size:14px;margin:6px 2px 0}#inicioMsg.error{color:#d62828;font-weight:600}
+#menuFin{position:fixed;inset:0;z-index:35;background:rgba(244,244,246,.97);display:none;align-items:center;justify-content:center;padding:22px}
 #menuFin .caja{width:100%;max-width:440px;text-align:center}
-#menuFin button{display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:8px;
-  border:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
+#menuFin button{display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:10px;border:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
 #menuFin button.prim{background:#1f5fbf;color:#fff;font-weight:600}
-#menuFin p{color:#1d1d1f;font-size:15px}
+#menuFin p{color:#1d1d1f;font-size:15px;line-height:1.45}
 </style>
 </head>
 <body>
-<div id="inicio"><div class="caja">
-  <h1>Visor de corrección</h1>
-  <p>Dibuja y escribe encima de las láminas de la propuesta B. Todo se guarda en el móvil al momento.</p>
-  <label class="abrir" for="archivo">Abrir láminas (.visor)</label>
-  <input type="file" id="archivo" style="display:none">
-  <p id="inicioMsg"></p>
-  <div id="previas"></div>
-  <p style="margin-top:22px"><b>Cómo funciona</b></p>
-  <ol>
-    <li>En el PC, el programa «Visor de corrección» → «Preparar para el móvil» deja el archivo en Drive, en <i>TFG_CLOUDE › movil › para_el_movil</i>.</li>
-    <li>Aquí, «Abrir láminas» → Explorar → Google Drive → esa carpeta.</li>
-    <li>Corrige. Al acabar, «Enviar a Drive» → Guardar en Archivos → Google Drive → <i>TFG_CLOUDE › movil › del_movil</i>.</li>
-    <li>En el PC, «Importar del móvil» lo pasa al caso para la IA.</li>
-  </ol>
-</div></div>
+<div id="inicio">
+  <div class="cab">
+    <h1>Visor de corrección</h1>
+    <div class="sub">Propuesta B · tus correcciones sobre las láminas</div>
+    <input id="buscar" type="search" placeholder="Buscar caso, obra, arquitecto o tipo" autocomplete="off">
+  </div>
+  <div id="lista"></div>
+  <div id="pie0">
+    <div id="elegido">
+      <div class="tit" id="elegidoTit"></div>
+      <div id="rondas"></div>
+      <button class="boton" id="abrirCaso">Abrir</button>
+    </div>
+    <label class="secundario" for="archivo">Añadir o actualizar casos</label>
+    <input type="file" id="archivo" multiple style="display:none">
+    <div id="inicioMsg"></div>
+  </div>
+</div>
 <div id="menuFin"><div class="caja">
   <p id="finMsg"></p>
   <button class="prim" id="mfEnviar">Enviar a Drive</button>
   <button id="mfSeguir">Seguir corrigiendo</button>
-  <button id="mfOtras">Abrir otras láminas</button>
+  <button id="mfOtras">Volver a los casos</button>
 </div></div>
 
 <header>
@@ -225,10 +239,117 @@ header{padding-top:max(6px, env(safe-area-inset-top))!important}
 <div id="capaFin"><div id="finTexto"></div></div>
 
 <script>
+// Descompresor gzip propio (RFC 1951/1952), sin depender del navegador: la DecompressionStream de Safari en iPhone
+// fallaba con los paquetes del visor («Failed to Decode Data»). Basado en el algoritmo canónico de «puff» (zlib).
+"use strict";
+const TFGgzip = (() => {
+  const LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+  const LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+  const DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+  const DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+  const ORDEN = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+
+  function tabla(lens, n){
+    const cnt = new Uint16Array(16), offs = new Uint16Array(16), sym = new Uint16Array(n);
+    for (let k = 0; k < n; k++) cnt[lens[k]]++;
+    cnt[0] = 0;
+    for (let k = 1; k < 16; k++) offs[k] = offs[k - 1] + cnt[k - 1];
+    for (let k = 0; k < n; k++) if (lens[k]) sym[offs[lens[k]]++] = k;
+    return {cnt, sym};
+  }
+
+  function inflar(src, tam){
+    let out = new Uint8Array(tam || src.length * 4), o = 0, i = 0, bb = 0, bc = 0;
+    const crecer = n => { if (o + n <= out.length) return; const m = new Uint8Array(Math.max(out.length * 2, o + n)); m.set(out); out = m; };
+    const bits = n => {
+      while (bc < n){ if (i >= src.length) throw new Error("el archivo está incompleto (¿Drive no lo había bajado entero?)"); bb |= src[i++] << bc; bc += 8; }
+      const v = bb & ((1 << n) - 1); bb >>>= n; bc -= n; return v;
+    };
+    const decod = t => {
+      let code = 0, first = 0, idx = 0;
+      for (let len = 1; len < 16; len++){
+        if (bc === 0){ if (i >= src.length) throw new Error("el archivo está incompleto"); bb = src[i++]; bc = 8; }
+        code |= bb & 1; bb >>>= 1; bc--;
+        const c = t.cnt[len];
+        if (code - first < c) return t.sym[idx + code - first];
+        idx += c; first += c; first <<= 1; code <<= 1;
+      }
+      throw new Error("datos comprimidos no válidos");
+    };
+    let fijaL = null, fijaD = null;
+    let final;
+    do {
+      final = bits(1);
+      const tipo = bits(2);
+      if (tipo === 0){
+        bb = 0; bc = 0;
+        const len = src[i] | (src[i + 1] << 8); i += 4;
+        crecer(len); out.set(src.subarray(i, i + len), o); o += len; i += len;
+        continue;
+      }
+      let L, D;
+      if (tipo === 1){
+        if (!fijaL){
+          const l = new Uint8Array(288); l.fill(8, 0, 144); l.fill(9, 144, 256); l.fill(7, 256, 280); l.fill(8, 280, 288);
+          fijaL = tabla(l, 288); fijaD = tabla(new Uint8Array(30).fill(5), 30);
+        }
+        L = fijaL; D = fijaD;
+      } else if (tipo === 2){
+        const hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
+        const cl = new Uint8Array(19);
+        for (let k = 0; k < hclen; k++) cl[ORDEN[k]] = bits(3);
+        const T = tabla(cl, 19), lens = new Uint8Array(hlit + hdist);
+        for (let k = 0; k < hlit + hdist;){
+          const s = decod(T);
+          if (s < 16){ lens[k++] = s; continue; }
+          let rep, v = 0;
+          if (s === 16){ if (!k) throw new Error("datos comprimidos no válidos"); v = lens[k - 1]; rep = 3 + bits(2); }
+          else if (s === 17) rep = 3 + bits(3);
+          else rep = 11 + bits(7);
+          while (rep--) lens[k++] = v;
+        }
+        L = tabla(lens.subarray(0, hlit), hlit); D = tabla(lens.subarray(hlit), hdist);
+      } else throw new Error("datos comprimidos no válidos");
+      for (;;){
+        const s = decod(L);
+        if (s < 256){ crecer(1); out[o++] = s; continue; }
+        if (s === 256) break;
+        const len = LBASE[s - 257] + bits(LEXT[s - 257]);
+        const ds = decod(D), dist = DBASE[ds] + bits(DEXT[ds]);
+        if (dist > o) throw new Error("datos comprimidos no válidos");
+        crecer(len);
+        for (let k = 0; k < len; k++){ out[o] = out[o - dist]; o++; }
+      }
+    } while (!final);
+    return out.subarray(0, o);
+  }
+
+  // Devuelve el texto de un archivo gzip, o el propio texto si el archivo no está comprimido.
+  function texto(buf){
+    const d = new Uint8Array(buf);
+    if (d.length < 18 || d[0] !== 0x1f || d[1] !== 0x8b) return new TextDecoder("utf-8").decode(d);
+    const flg = d[3];
+    let p = 10;
+    if (flg & 4) p += 2 + (d[p] | (d[p + 1] << 8));
+    if (flg & 8) while (d[p++]);
+    if (flg & 16) while (d[p++]);
+    if (flg & 2) p += 2;
+    const n = d.length, tam = (d[n - 4] | (d[n - 3] << 8) | (d[n - 2] << 16) | (d[n - 1] << 24)) >>> 0;
+    return new TextDecoder("utf-8").decode(inflar(d.subarray(p, n - 8), tam));
+  }
+  return {texto, inflar};
+})();
+
+</script>
+<script>
+// Almacén de la app del móvil (v5.7, ADR 0009): biblioteca de casos (paquetes .visor) con buscador, elección de
+// ronda, guardado de cada trazo en el propio móvil (IndexedDB) y envío del archivo de correcciones a Drive.
+// `construir_app.py` lo incrusta en app_movil/index.html, después de gunzip.js.
 "use strict";
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e){}
 window.VISOR_ALMACEN = (() => {
-  const ST = "datos";
+  const ST = "datos", RONDAS = ["turno_1", "turno_2", "turno_3"];
   const idb = () => new Promise((ok, mal) => { const r = indexedDB.open("visor-tfg", 1);
     r.onupgradeneeded = () => r.result.createObjectStore(ST); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); });
   const poner = async (k, v) => { const db = await idb(); return new Promise((ok, mal) => { const t = db.transaction(ST, "readwrite");
@@ -236,79 +357,140 @@ window.VISOR_ALMACEN = (() => {
   const leer = async k => { const db = await idb(); return new Promise((ok, mal) => { const q = db.transaction(ST).objectStore(ST).get(k);
     q.onsuccess = () => ok(q.result); q.onerror = () => mal(q.error); }); };
   const $i = id => document.getElementById(id);
-  let actual = null;          // {clave, paquete}
+  const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
+  const sinAcentos = t => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const horaLocal = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); };
+  const puntos = anot => Object.values(anot || {}).reduce((n, d) => n + (d.puntos || []).filter(p =>
+    (p.texto || "").trim() || (d.elementos || []).some(e => e.punto === p.id)).length, 0);
+  let actual = null, sel = null, rondaSel = null;
 
-  async function descomprimir(blob){
-    if (!("DecompressionStream" in window)) throw new Error("Este navegador es demasiado antiguo (hace falta iOS 16.4 o posterior).");
-    const txt = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).text();
-    const p = JSON.parse(txt);
-    if (p.formato !== "tfg-movil-paquete/1") throw new Error("Ese archivo no son láminas del visor (.visor).");
-    if (p.linea !== "B") throw new Error("La app es para corregir la propuesta B.");
+  async function abrirPaquete(blob){
+    let p;
+    try { p = JSON.parse(TFGgzip.texto(await blob.arrayBuffer())); }
+    catch (e){ throw new Error(`No se pudo leer el archivo (${(blob.size / 1e6).toFixed(1)} MB): ${e.message}`); }
+    if (p.formato === "tfg-movil-paquete/1"){ p.rondas = {[p.ronda]: p.anotaciones || {}}; p.formato = "tfg-movil-paquete/2"; }
+    if (p.formato !== "tfg-movil-paquete/2") throw new Error("ese archivo no son láminas del visor (.visor)");
+    if (p.linea !== "B") throw new Error("la app es para corregir la propuesta B");
     return p; }
   function nuevas(a, b){          // por lámina, la versión con fecha más reciente
     const out = {...(a || {})};
     for (const [k, v] of Object.entries(b || {})) if (!out[k] || (v.actualizado || "") > (out[k].actualizado || "")) out[k] = v;
     return out; }
-  async function preparar(blob){
-    const p = await descomprimir(blob), clave = `${p.caso}_${p.linea}_${p.ronda}`;
-    await poner("paq:" + clave, blob);
-    const locales = await leer("anot:" + clave);
-    const anot = nuevas(p.anotaciones, locales);
-    const lista = (await leer("lista")) || [];
-    const fila = {clave, caso: p.caso, ronda: p.ronda, creado: p.creado, abierto: new Date().toISOString().slice(0, 16).replace("T", " "), n: p.laminas.length};
-    await poner("lista", [fila].concat(lista.filter(x => x.clave !== clave)).slice(0, 12));
-    await poner("ultimo", clave);
-    actual = {clave, p};
-    return {caso: p.caso, linea: p.linea, ronda: p.ronda, autor: "usuario", solo_ver: false, colores: p.colores,
+  async function indice(){ return (await leer("indice").catch(() => null)) || {}; }
+  async function nPuntos(c, r){ return puntos(await leer(`anot:${c.caso}|${r}`).catch(() => null)) || (c.rondasPaq || {})[r] || 0; }
+
+  async function anadir(archivos){
+    const idx = await indice(), hechos = [], fallos = [];
+    for (const f of archivos){
+      try {
+        $i("inicioMsg").className = ""; $i("inicioMsg").textContent = `Leyendo ${f.name}…`;
+        const p = await abrirPaquete(f);
+        await poner("paq:" + p.caso, f);
+        idx[p.caso] = {caso: p.caso, info: p.info || {}, n: p.laminas.length, creado: p.creado,
+          rondasPaq: Object.fromEntries(Object.entries(p.rondas || {}).map(([r, a]) => [r, puntos(a)]))};
+        hechos.push(p.caso.replace("CASO_", ""));
+      } catch (e){ fallos.push(`${f.name}: ${e.message}`); }
+    }
+    await poner("indice", idx);
+    $i("inicioMsg").className = fallos.length ? "error" : "";
+    $i("inicioMsg").textContent = (hechos.length ? `Añadido${hechos.length > 1 ? "s" : ""}: ${hechos.join(", ")}. ` : "") + fallos.join(" · ");
+    await pintarLista(); }
+
+  let turnoLista = 0;
+  async function pintarLista(){
+    const yo = ++turnoLista;          // si llega otra petición mientras esta espera, gana la última
+    const idx = await indice(), q = sinAcentos($i("buscar").value.trim()), lista = $i("lista");
+    const casos = Object.values(idx).sort((a, b) => b.caso.localeCompare(a.caso));
+    const filas = [];
+    for (const c of casos){
+      const i = c.info || {}, texto = sinAcentos([c.caso, i.obra, i.autor, i.anio, i.tipo].join(" "));
+      if (q && !q.split(/\s+/).every(t => texto.includes(t))) continue;
+      const loc = [];
+      for (const r of RONDAS){ const n = await nPuntos(c, r); if (n) loc.push(`${r.replace("turno_", "t")}: ${n}`); }
+      const b = document.createElement("button"); b.className = "fila" + (sel === c.caso ? " sel" : "");
+      b.innerHTML = `<div class="l1"><span class="cod">${esc(c.caso.replace("CASO_", ""))}</span><span class="obra">${esc(i.obra || c.caso)}</span></div>
+        <div class="meta">${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
+      b.onclick = () => elegir(c);
+      filas.push(b); }
+    if (yo !== turnoLista) return;
+    lista.innerHTML = "";
+    if (!casos.length){
+      lista.innerHTML = `<div id="vacio"><b>Aún no hay casos en el móvil.</b><br><br>1. En el ordenador, programa «Visor de corrección» → «Preparar todos para el móvil».<br>2. Aquí, «Añadir o actualizar casos» → Explora → Google Drive → TFG_CLOUDE → movil → para_el_movil → Selecciona → marca todos → Abre.<br><br>Al acabar de corregir: «Enviar» → «Enviar a Drive» → guárdalo en TFG_CLOUDE → movil → del_movil, y en el ordenador «Importar del móvil».</div>`;
+    } else if (!filas.length) lista.innerHTML = `<div id="vacio">Ningún caso coincide con «${esc($i("buscar").value)}».</div>`;
+    filas.forEach(b => lista.appendChild(b)); }
+
+  async function elegir(c){
+    sel = c.caso; const i = c.info || {};
+    $i("elegido").style.display = "block";
+    $i("elegidoTit").innerHTML = `<b>${esc(c.caso.replace("CASO_", "Caso "))}${i.obra ? " · " + esc(i.obra) : ""}</b> — elige la ronda:`;
+    const rs = $i("rondas"); rs.innerHTML = "";
+    const ultimo = (await leer("ultimo").catch(() => null)) || {};
+    const otras = Object.keys(c.rondasPaq || {}).filter(r => !RONDAS.includes(r));
+    const todas = RONDAS.concat(otras), ns = {};
+    for (const r of todas) ns[r] = await nPuntos(c, r);
+    rondaSel = ultimo.caso === c.caso ? ultimo.ronda : (RONDAS.slice().reverse().find(r => ns[r]) || "turno_1");
+    for (const r of todas){
+      const b = document.createElement("button"); b.className = r === rondaSel ? "act" : "";
+      b.innerHTML = `${esc(r.replace("turno_", "Turno "))}<small>${ns[r] ? ns[r] + (ns[r] === 1 ? " punto" : " puntos") : "vacía"}</small>`;
+      b.onclick = () => { rondaSel = r; [...rs.children].forEach(x => x.classList.toggle("act", x === b)); };
+      rs.appendChild(b); }
+    await pintarLista(); }
+
+  async function sesion(caso, ronda){
+    const blob = await leer("paq:" + caso);
+    if (!blob) throw new Error("ese caso ya no está en el móvil: añádelo otra vez");
+    const p = await abrirPaquete(blob);
+    const anot = nuevas((p.rondas || {})[ronda], await leer(`anot:${caso}|${ronda}`));
+    await poner("ultimo", {caso, ronda});
+    actual = {caso, ronda, creado: p.creado};
+    return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: false, colores: p.colores,
       laminas: p.laminas.map(l => ({nombre: l.nombre, fondo: l.fondo, tipo: l.tipo, W: l.W, H: l.H, dibujos: l.dibujos,
         url: l.svg ? URL.createObjectURL(new Blob([l.svg], {type: "image/svg+xml"})) : l.img})),
       anotaciones: anot}; }
-  function pantallaInicio(msg, error){
-    return new Promise(async listo => {
-      const ini = $i("inicio"); ini.style.display = "flex";
-      $i("inicioMsg").textContent = msg || ""; $i("inicioMsg").className = error ? "error" : "";
-      const previas = $i("previas"); previas.innerHTML = "";
-      for (const f of (await leer("lista").catch(() => null)) || []){
-        const b = document.createElement("button"); b.className = "previa";
-        b.innerHTML = `<b>${f.caso} · ${f.ronda}</b><small>${f.n} láminas · abierto ${f.abierto}</small>`;
-        b.onclick = async () => { try { const blob = await leer("paq:" + f.clave); const e = await preparar(blob); ini.style.display = "none"; listo(e); }
-          catch (err){ $i("inicioMsg").textContent = err.message; $i("inicioMsg").className = "error"; } };
-        previas.appendChild(b); }
-      $i("archivo").onchange = async ev => { const f = ev.target.files[0]; if (!f) return;
-        $i("inicioMsg").textContent = "Abriendo…"; $i("inicioMsg").className = "";
-        try { const e = await preparar(f); ini.style.display = "none"; listo(e); }
-        catch (err){ $i("inicioMsg").textContent = err.message; $i("inicioMsg").className = "error"; }
-        ev.target.value = ""; }; }); }
+
+  function pantallaInicio(){
+    return new Promise(listo => {
+      $i("inicio").style.display = "flex";
+      $i("buscar").oninput = pintarLista;
+      $i("archivo").onchange = async ev => { const fs = [...ev.target.files]; ev.target.value = ""; if (fs.length) await anadir(fs); };
+      $i("abrirCaso").onclick = async () => {
+        if (!sel) return;
+        $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Abriendo…";
+        try { const e = await sesion(sel, rondaSel); $i("inicio").style.display = "none"; $i("inicioMsg").textContent = ""; listo(e); }
+        catch (err){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = err.message; } };
+      pintarLista(); }); }
 
   async function cargar(){
-    const elegir = sessionStorage.getItem("visor-elegir"); sessionStorage.removeItem("visor-elegir");
-    if (!elegir){ try { const u = await leer("ultimo"); const blob = u && await leer("paq:" + u); if (blob) return await preparar(blob); } catch (e){} }
+    const volver = sessionStorage.getItem("visor-elegir"); sessionStorage.removeItem("visor-elegir");
+    if (!volver){ try { const u = await leer("ultimo"); if (u && u.caso) return await sesion(u.caso, u.ronda); } catch (e){} }
     return pantallaInicio(); }
-  async function guardar(datos, todas){ if (actual) await poner("anot:" + actual.clave, todas); }
+  async function guardar(datos, todas){ if (actual) await poner(`anot:${actual.caso}|${actual.ronda}`, todas); }
 
   async function enviar(est){
     const con = {};
-    for (const [k, v] of Object.entries(est.anotaciones)) if ((v.elementos || []).length || (v.comentario || "").trim() || (v.puntos || []).some(p => (p.texto || "").trim())) con[k] = v;
+    for (const [k, v] of Object.entries(est.anotaciones))
+      if ((v.elementos || []).length || (v.comentario || "").trim() || (v.puntos || []).some(p => (p.texto || "").trim())) con[k] = v;
     const n = Object.keys(con).length;
-    if (!n){ $i("finMsg").textContent = "Aún no hay nada dibujado ni escrito."; return; }
-    const d = new Date(), local = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19), sello = local.replace(/[-:]/g, "").replace("T", "_");
+    if (!n){ $i("finMsg").textContent = "Aún no hay nada dibujado ni escrito en esta ronda."; return; }
+    const local = horaLocal(), sello = local.replace(/[-:]/g, "").replace("T", "_");
     const datos = {formato: "tfg-movil-correcciones/1", caso: est.caso, linea: est.linea, ronda: est.ronda,
-      paquete_creado: actual.p.creado, enviado: local, anotaciones: con};
-    const nombre = `${actual.clave}__movil_${sello}.json`;
+      paquete_creado: actual.creado, enviado: local, anotaciones: con};
+    const nombre = `${est.caso}_${est.linea}_${est.ronda}__movil_${sello}.json`;
     const archivo = new File([JSON.stringify(datos)], nombre, {type: "application/json"});
     try {
-      if (navigator.canShare && navigator.canShare({files: [archivo]})){ await navigator.share({files: [archivo], title: nombre}); }
+      if (navigator.canShare && navigator.canShare({files: [archivo]})) await navigator.share({files: [archivo], title: nombre});
       else { const a = document.createElement("a"); a.href = URL.createObjectURL(archivo); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
-      $i("finMsg").innerHTML = `<b>Listo:</b> ${n} lámina${n === 1 ? "" : "s"} en <i>${nombre}</i>.<br>Comprueba que lo has guardado en Google Drive › TFG_CLOUDE › movil › del_movil. Lo dibujado sigue en el móvil.`;
+      $i("finMsg").innerHTML = `<b>Listo:</b> ${n} lámina${n === 1 ? "" : "s"} en <i>${esc(nombre)}</i>.<br>Comprueba que lo has guardado en Google Drive → TFG_CLOUDE → movil → del_movil. Lo dibujado sigue en el móvil.`;
     } catch (e){ if (e.name !== "AbortError") $i("finMsg").textContent = "No se pudo enviar: " + e.message; } }
   function terminar(est){
-    $i("finMsg").innerHTML = "Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en <i>TFG_CLOUDE › movil › del_movil</i>.";
+    $i("finMsg").innerHTML = `<b>${esc(est.caso.replace("CASO_", "Caso "))} · ${esc(est.ronda.replace("turno_", "turno "))}</b><br>Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en TFG_CLOUDE → movil → del_movil.`;
     $i("menuFin").style.display = "flex";
     $i("mfEnviar").onclick = () => enviar(est);
     $i("mfSeguir").onclick = () => { $i("menuFin").style.display = "none"; };
     $i("mfOtras").onclick = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); }; }
   return {cargar, guardar, terminar, textoTerminar: "Enviar"};
 })();
+
 </script>
 <script>
 "use strict";
@@ -419,7 +601,13 @@ const horaLocal = () => { const d = new Date(); return new Date(d - d.getTimezon
 async function iniciar(){
   if (ALM){ S.est = await ALM.cargar(); if (ALM.textoTerminar) $("terminar").textContent = ALM.textoTerminar; }
   else if (EST){ S.est = EST; try { Object.assign(S.est.anotaciones, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch (e){} }
-  else { const r = await fetch("/api/estado"); S.est = await r.json(); }
+  else { const r = await fetch("/api/estado"); S.est = await r.json();
+    if (S.est.ok === false){ location.href = "/"; return; }
+    if (S.est.inicio){          // programa del PC: volver a la lista de casos y latido (si la ventana se cierra, el programa termina)
+      const b = document.createElement("button"); b.className = "volverCasos"; b.textContent = "‹ Casos"; b.title = "Volver a la lista de casos (se guarda todo)";
+      b.onclick = async () => { await guardarYa(); location.href = "/"; };
+      document.querySelector("header").prepend(b);
+      const latido = () => fetch("/api/latido", {method: "POST"}).catch(() => {}); latido(); setInterval(latido, 15000); } }
   if (!S.est.laminas.length){ $("titulo").textContent = "La propuesta no tiene láminas"; return; }
   if (S.est.solo_ver) document.body.classList.add("solo-ver");
   S.color = Object.values(S.est.colores)[0];
@@ -794,6 +982,7 @@ $("terminar").onclick = async () => {
   if (S.est.solo_ver){ if (!confirm("¿Cerrar el visor?")) return; } else if (!confirm("¿Terminar? Se exportan las anotaciones para la IA y se cierra el visor. Puedes volver a abrirlo después y seguir.")) return;
   await guardarYa();
   const r = await fetch("/api/terminar", {method: "POST"}), j = await r.json();
+  if (j.ok && j.volver){ location.href = j.volver + (j.resumen ? "?exportado=" + encodeURIComponent(j.resumen) : ""); return; }
   $("finTexto").innerHTML = j.ok ? `<b>Terminado.</b><br><br>${j.resumen ? "Anotaciones exportadas en<br><code>" + j.resumen + "</code><br><br>" : ""}Ya puedes cerrar esta pestaña y decirle al orquestador que has acabado.`
     : "No se pudo exportar: " + j.error;
   $("capaFin").style.display = "flex"; };
