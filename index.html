@@ -18,6 +18,7 @@ header .tit{min-width:0}
 #info{color:var(--gris);font-size:12px}
 #guardado{margin-left:auto;font-size:12px;color:var(--gris);white-space:nowrap}
 #guardado.mal{color:var(--rojo);font-weight:600}
+#cerrarTurno{border:1px solid #1b7a34;background:#1b7a34;color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:600;order:3}
 #terminar{border:1px solid var(--tinta);background:var(--tinta);color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer}
 nav#herr{grid-area:herr;background:var(--papel);border-right:1px solid var(--linea);padding:6px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden;width:156px}
 nav#herr button.h{white-space:nowrap}
@@ -238,6 +239,7 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
     <button class="flecha" id="ant" title="Lámina anterior (←, Re Pág)">‹</button>
     <span id="contador"></span>
     <button class="flecha" id="sig" title="Lámina siguiente (→, Av Pág)">›</button>
+    <button id="cerrarTurno" title="Das por terminadas tus correcciones de este turno: se envían y el orquestador sigue solo" style="display:none">Cerrar turno</button>
     <button id="terminar" title="Exporta las anotaciones para la IA y cierra el visor">Terminar</button>
   </div>
 </footer>
@@ -585,10 +587,11 @@ window.VISOR_ALMACEN = (() => {
     if (!blob) throw new Error("ese caso ya no está en el móvil: añádelo otra vez");
     const p = await abrirPaquete(blob);
     const soloVer = p.linea === "A";
+    const turnoAbierto = !soloVer && !otro() && conectado() && !!(p.turnos && p.turnos.turnos && p.turnos.turnos[base(ronda)] === "abierto");
     const anot = soloVer ? ((p.rondas || {})[ronda] || {}) : nuevas((p.rondas || {})[ronda], await leer(`anot:${k}|${ronda}`));
     await poner("ultimo", {caso, ronda: base(ronda), linea: p.linea});
     actual = {caso, ronda, linea: p.linea, creado: p.creado, inicial: soloVer ? undefined : await leer(`anot:${k}|${ronda}`).catch(() => undefined)};
-    return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: soloVer, colores: p.colores,
+    return {caso: p.caso, linea: p.linea, ronda, autor: "usuario", solo_ver: soloVer, turno_abierto: turnoAbierto, colores: p.colores,
       laminas: p.laminas.map(l => ({nombre: l.nombre, fondo: l.fondo, tipo: l.tipo, W: l.W, H: l.H, dibujos: l.dibujos,
         url: l.svg ? URL.createObjectURL(new Blob([l.svg], {type: "image/svg+xml"})) : l.img})),
       anotaciones: anot}; }
@@ -626,21 +629,22 @@ window.VISOR_ALMACEN = (() => {
     return pantallaInicio(); }
   async function guardar(datos, todas){ if (actual && actual.linea !== "A") await poner(`anot:${K(actual.caso, actual.linea)}|${actual.ronda}`, todas); }
 
-  async function enviar(est){
+  async function enviar(est, extra = {}){
     const con = {};
     for (const [k, v] of Object.entries(est.anotaciones))
       if ((v.elementos || []).length || (v.comentario || "").trim() || (v.puntos || []).some(p => (p.texto || "").trim())) con[k] = v;
     const n = Object.keys(con).length;
-    if (!n){ $i("finMsg").textContent = "Aún no hay nada dibujado ni escrito en esta ronda."; return; }
+    if (!n && !extra.cierre){ $i("finMsg").textContent = "Aún no hay nada dibujado ni escrito en esta ronda."; return; }
     const local = horaLocal(), sello = local.replace(/[-:]/g, "").replace("T", "_");
     const datos = {formato: "tfg-movil-correcciones/1", caso: est.caso, linea: est.linea, ronda: est.ronda,
-      paquete_creado: actual.creado, enviado: local, anotaciones: con};
+      paquete_creado: actual.creado, enviado: local, anotaciones: con, ...extra};
     const nombre = `${est.caso}_${est.linea}_${est.ronda}__movil_${sello}.json`;
     const archivo = new File([JSON.stringify(datos)], nombre, {type: "application/json"});
     if (codigo()){
       $i("finMsg").textContent = "Enviando…";
       try {
         await srv("/correccion", {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(datos)});
+        if (extra.cierre) return true;
         $i("finMsg").innerHTML = `<b>Enviado al TFG:</b> ${n} lámina${n === 1 ? "" : "s"} de ${esc(est.caso)} · ${esc(base(est.ronda).replace("turno_", "turno "))}, a nombre de ${esc((persona() || {}).nombre || "")}.<br>Lo dibujado sigue en el móvil.`;
         return;
       } catch (e){ $i("finMsg").textContent = "No se pudo enviar (" + e.message + "). Prueba de nuevo o guárdalo en un archivo:"; }
@@ -649,6 +653,7 @@ window.VISOR_ALMACEN = (() => {
       try {
         await gh("correcciones/" + nombre, {method: "PUT", headers: {Accept: "application/vnd.github+json", "Content-Type": "application/json"},
           body: JSON.stringify({message: `Correcciones del móvil · ${est.caso} · ${est.ronda}`, content: b64(JSON.stringify(datos)), branch: "main"})});
+        if (extra.cierre) return true;
         $i("finMsg").innerHTML = `<b>Enviado al TFG:</b> ${n} lámina${n === 1 ? "" : "s"} de ${esc(est.caso)} · ${esc(est.ronda.replace("turno_", "turno "))}.<br>En el ordenador, «Importar del móvil» lo recoge para la IA. Lo dibujado sigue en el móvil.`;
         return;
       } catch (e){ $i("finMsg").textContent = "No se pudo enviar a GitHub (" + e.message + "). Prueba de nuevo o guárdalo en Drive:"; }
@@ -692,7 +697,16 @@ window.VISOR_ALMACEN = (() => {
       f.descartar();
       await poner(`anot:${K(actual.caso, actual.linea)}|${actual.ronda}`, actual.inicial);
       irse(); }; }
-  return {cargar, guardar, terminar, volver, get textoTerminar(){ return actual && actual.linea === "A" ? "Cerrar" : "Enviar"; }};
+  async function cerrarTurno(est){
+    $i("menuFin").style.display = "flex"; $i("finMsg").textContent = "Cerrando el turno y enviando…";
+    ["mfEnviar", "mfSeguir", "mfOtras"].forEach(id => $i(id).style.display = "none");
+    const ok = await enviar(est, {cierre: true});
+    ["mfEnviar", "mfSeguir", "mfOtras"].forEach(id => $i(id).style.display = "");
+    if (ok === true){
+      $i("finMsg").innerHTML = `<b>${esc(base(est.ronda).replace("turno_", "Turno "))} cerrado.</b><br>El orquestador recoge tus correcciones y sigue solo (tarda como mucho un minuto). Ya no hace falta que le avises.`;
+      $i("mfEnviar").style.display = "none"; $i("mfSeguir").style.display = "none"; }
+    else $i("mfSeguir").style.display = ""; }
+  return {cargar, guardar, terminar, volver, cerrarTurno, get textoTerminar(){ return actual && actual.linea === "A" ? "Cerrar" : "Enviar"; }};
 })();
 
 </script>
@@ -827,6 +841,8 @@ async function iniciar(){
   inp.oninput = () => { S.color = inp.value; pintarEstilo(); aplicarASel({color: inp.value}); }; cs.appendChild(inp);
   S.est.laminas.forEach((l, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${i + 1}. ${l.nombre}`; $("salto").appendChild(o); });
   pintarEstilo(); elegir(S.est.solo_ver ? "pan" : "sel"); abrir(0);
+  if (S.est.turno_abierto){ const b = $("cerrarTurno"); b.style.display = "";
+    b.textContent = "Cerrar " + S.est.ronda.replace("turno_", "turno "); $("terminar").textContent = "Salir sin cerrar"; }
 }
 
 function abrir(i){
@@ -1184,6 +1200,16 @@ $("acabar").onclick = () => terminarTmp(false); $("cerrarTrazo").onclick = () =>
 $("cancelar").onclick = () => { S.tmp = null; pintarTmp(); };
 $("ant").onclick = () => abrir(S.idx - 1); $("sig").onclick = () => abrir(S.idx + 1);
 $("salto").onchange = ev => abrir(+ev.target.value);
+$("cerrarTurno").onclick = async () => {
+  const t = S.est.ronda.replace("turno_", "turno ");
+  if (!confirm(`¿Cerrar el ${t}? Tus correcciones se envían al orquestador, que seguirá solo. Después ya no podrás añadir nada a este turno.`)) return;
+  await guardarYa();
+  if (ALM) return ALM.cerrarTurno(S.est);
+  const j = await (await fetch("/api/cerrar_turno", {method: "POST"})).json();
+  if (!j.ok){ estadoGuardado("NO SE PUDO CERRAR: " + j.error, true); return; }
+  if (j.volver){ location.href = j.volver + "?cerrado=" + encodeURIComponent(t); return; }
+  $("finTexto").innerHTML = `<b>${t} cerrado.</b><br><br>El orquestador ya tiene tus correcciones y sigue con el proceso. Puedes cerrar esta ventana.`;
+  $("capaFin").style.display = "flex"; };
 $("terminar").onclick = async () => {
   if (ALM){ await guardarYa(); return ALM.terminar(S.est); }
   if (EST){ await guardarYa(); $("finTexto").innerHTML = "<b>Esto es una demostración.</b><br><br>En el visor real, «Terminar» exporta lo que has dibujado y escrito (PDF y PNG anotados, un recorte por punto y un resumen) para que la IA lo lea, y cierra el visor.<br><br><button onclick=\"document.getElementById('capaFin').style.display='none'\" style=\"font:inherit;padding:6px 14px;border:1px solid #1d1d1f;background:#fff;border-radius:4px\">Volver</button>"; $("capaFin").style.display = "flex"; return; }
