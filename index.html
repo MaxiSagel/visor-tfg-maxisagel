@@ -161,7 +161,12 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
 .fila:active{transform:scale(.985)!important}
 .fila.entra{animation:filaEntra .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--k,0) * 55ms)}
 @keyframes filaEntra{from{opacity:0;transform:perspective(800px) translateY(26px) rotateX(-16deg)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.fila.entra{animation:none}#inicio .cab{transition:none}}
+#inicio.entra{animation:inEntra .55s cubic-bezier(.2,.7,.2,1)}
+#inicio.sale{animation:inSale .4s cubic-bezier(.4,0,.2,1) forwards;pointer-events:none}
+@keyframes inEntra{from{opacity:0;transform:perspective(1200px) translateY(40px) rotateX(-7deg)}to{opacity:1;transform:none}}
+@keyframes inSale{to{opacity:0;transform:perspective(1200px) translateZ(-180px) rotateX(7deg)}}
+#menuFin .caja{animation:inEntra .5s cubic-bezier(.2,.7,.2,1)}
+@media(prefers-reduced-motion:reduce){.fila.entra,#inicio.entra,#inicio.sale,#menuFin .caja{animation:none}#inicio .cab{transition:none}}
 </style>
 </head>
 <body>
@@ -653,15 +658,20 @@ window.VISOR_ALMACEN = (() => {
       a.onclick = ev => { ev.preventDefault(); if (!confirm("¿Salir en este móvil? Lo dibujado y no enviado se conserva.")) return;
         ls_("visor-codigo", ""); ls_("visor-persona", ""); ponerClave(""); pintarCabecera(); pintarLista(); };
       sub.appendChild(a); } }
+  // v12: la lista se hunde hacia el fondo y deja ver el visor (sin movimiento si el sistema lo pide)
+  function salirInicio(){
+    const el = $i("inicio"); el.classList.remove("entra");
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches){ el.style.display = "none"; return; }
+    el.classList.add("sale"); setTimeout(() => { if (el.classList.contains("sale")){ el.style.display = "none"; el.classList.remove("sale"); } }, 400); }
   function pantallaInicio(){
     return new Promise(listo => {
-      $i("inicio").style.display = "flex";
+      const ini = $i("inicio"); ini.style.display = "flex"; ini.classList.remove("sale"); ini.classList.add("entra");          // v12: entra subiendo
       $i("buscar").oninput = pintarLista;
       $i("archivo").onchange = async ev => { const fs = [...ev.target.files]; ev.target.value = ""; if (fs.length) await anadir(fs); };
       $i("abrirCaso").onclick = async () => {
         if (!sel) return;
         $i("inicioMsg").className = ""; $i("inicioMsg").textContent = "Abriendo…";
-        try { const e = await sesion(sel, rondaSel, lineaSel); $i("inicio").style.display = "none"; $i("inicioMsg").textContent = ""; listo(e); }
+        try { const e = await sesion(sel, rondaSel, lineaSel); salirInicio(); $i("inicioMsg").textContent = ""; listo(e); }
         catch (err){ $i("inicioMsg").className = "error"; $i("inicioMsg").textContent = err.message; } };
       $i("archivoEtq").textContent = "Añadir desde archivo (Drive)";
       pintarCabecera();
