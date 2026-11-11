@@ -392,7 +392,7 @@ window.VISOR_ALMACEN = (() => {
     catch (e){ if (e.no) throw new Error("todavía no hay casos subidos al repositorio de datos (o la clave no es de ese repositorio)"); throw e; }
     const idx = await indice();
     for (const c of j.casos){ const prev = idx[c.caso] || {};
-      idx[c.caso] = {...prev, caso: c.caso, info: c.info || {}, n: c.n, rondasPaq: c.rondasPaq || {}, remoto: c.archivo, creadoRemoto: c.creado, bytes: c.bytes}; }
+      idx[c.caso] = {...prev, caso: c.caso, info: c.info || {}, n: c.n, rondasPaq: c.rondasPaq || {}, remoto: c.archivo, creadoRemoto: c.creado, bytes: c.bytes, turnos: c.turnos || null}; }
     await poner("indice", idx);
     return j.casos.length; }
   async function descargar(c){
@@ -443,7 +443,7 @@ window.VISOR_ALMACEN = (() => {
         const p = await abrirPaquete(f);
         await poner("paq:" + p.caso, f);
         idx[p.caso] = {caso: p.caso, info: p.info || {}, n: p.laminas.length, creado: p.creado,
-          rondasPaq: Object.fromEntries(Object.entries(p.rondas || {}).map(([r, a]) => [r, puntos(a)]))};
+          rondasPaq: Object.fromEntries(Object.entries(p.rondas || {}).map(([r, a]) => [r, puntos(a)])), turnos: p.turnos || null};
         hechos.push(p.caso.replace("CASO_", ""));
       } catch (e){ fallos.push(`${f.name}: ${e.message}`); }
     }
@@ -456,7 +456,8 @@ window.VISOR_ALMACEN = (() => {
   async function pintarLista(){
     const yo = ++turnoLista;          // si llega otra petición mientras esta espera, gana la última
     const idx = await indice(), q = sinAcentos($i("buscar").value.trim()), lista = $i("lista");
-    const casos = Object.values(idx).sort((a, b) => b.caso.localeCompare(a.caso));
+    const enCurso = c => !!(c.turnos && c.turnos.estado === "en curso");
+    const casos = Object.values(idx).sort((a, b) => (enCurso(b) - enCurso(a)) || b.caso.localeCompare(a.caso));          // en curso, primero
     const filas = [];
     for (const c of casos){
       const i = c.info || {}, texto = sinAcentos([c.caso, i.obra, i.autor, i.anio, i.tipo].join(" "));
@@ -464,13 +465,22 @@ window.VISOR_ALMACEN = (() => {
       const loc = [];
       for (const r of RONDAS){ const n = await nPuntos(c, r); if (n) loc.push(`${r.replace("turno_", "t")}: ${n}`); }
       const b = document.createElement("button"); b.className = "fila" + (sel === c.caso ? " sel" : "");
+      const ab = c.turnos && c.turnos.abierto;
+      if (enCurso(c)) b.style.borderColor = "#f0b37a";
+      const curso = enCurso(c) ? `<span style="color:#b45309;font-weight:650">EN CURSO${ab ? " · " + ab.replace("turno_", "turno ") + " abierto" : ""}</span><br>` : "";
       b.innerHTML = `<div class="l1"><span class="cod">${esc(c.caso.replace("CASO_", ""))}</span><span class="obra">${esc(i.obra || c.caso)}</span></div>
-        <div class="meta">${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${c.remoto && c.creado !== c.creadoRemoto ? ` · se descarga al abrir (${((c.bytes || 0) / 1e6).toFixed(1)} MB)` : ""}${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
+        <div class="meta">${curso}${esc([i.autor, i.anio, i.tipo].filter(Boolean).join(" · "))}${i.autor ? "<br>" : ""}${c.n} láminas${c.remoto && c.creado !== c.creadoRemoto ? ` · se descarga al abrir (${((c.bytes || 0) / 1e6).toFixed(1)} MB)` : ""}${loc.length ? ` · <span class="hay">puntos ${esc(loc.join(" · "))}</span>` : ""}</div>`;
       b.onclick = () => elegir(c);
       filas.push(b); }
     if (yo !== turnoLista) return;
     lista.innerHTML = "";
     if (!clave()) tarjetaClave(lista);
+    for (const c of casos.filter(x => enCurso(x) && x.turnos.abierto)){          // aviso: turno abierto esperando correcciones
+      const a = document.createElement("button"); a.className = "fila";
+      a.style.cssText = "background:#fff7ed;border-color:#f0b37a;color:#7c3a0a";
+      a.innerHTML = `<b>${esc(c.caso.replace("CASO_", "Caso "))}${c.info && c.info.obra ? " · " + esc(c.info.obra) : ""}</b><br>${esc(c.turnos.abierto.replace("turno_", "Turno "))} abierto: el orquestador espera tus correcciones. Toca para corregir.`;
+      a.onclick = () => elegir(c);
+      lista.appendChild(a); }
     if (!casos.length){
       if (clave()) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Aún no hay casos en el repositorio de datos. En el ordenador: programa «Visor de corrección» → «Subir casos a la app».</div>`);
     } else if (!filas.length) lista.insertAdjacentHTML("beforeend", `<div id="vacio">Ningún caso coincide con «${esc($i("buscar").value)}».</div>`);
@@ -485,12 +495,20 @@ window.VISOR_ALMACEN = (() => {
     const otras = Object.keys(c.rondasPaq || {}).filter(r => !RONDAS.includes(r));
     const todas = RONDAS.concat(otras), ns = {};
     for (const r of todas) ns[r] = await nPuntos(c, r);
-    rondaSel = ultimo.caso === c.caso ? ultimo.ronda : (RONDAS.slice().reverse().find(r => ns[r]) || "turno_1");
+    const tt = c.turnos && c.turnos.turnos ? c.turnos : null;          // caso llevado con turnos: se habilitan a medida que tocan
+    rondaSel = tt ? (tt.abierto || RONDAS.slice().reverse().find(r => tt.turnos[r] === "cerrado") || null)
+      : ultimo.caso === c.caso ? ultimo.ronda : (RONDAS.slice().reverse().find(r => ns[r]) || "turno_1");
     for (const r of todas){
+      const et = tt ? tt.turnos[r] : null, n = ns[r];
       const b = document.createElement("button"); b.className = r === rondaSel ? "act" : "";
-      b.innerHTML = `${esc(r.replace("turno_", "Turno "))}<small>${ns[r] ? ns[r] + (ns[r] === 1 ? " punto" : " puntos") : "vacía"}</small>`;
-      b.onclick = () => { rondaSel = r; [...rs.children].forEach(x => x.classList.toggle("act", x === b)); };
+      if (et === "pendiente"){ b.disabled = true; b.style.color = "#b5b5ba"; }
+      const sub = et === "pendiente" ? "aún no" : et === "abierto" ? "abierto" + (n ? ` · ${n}` : "") : et === "cerrado" ? "cerrado" + (n ? ` · ${n}` : "") : (n ? n + (n === 1 ? " punto" : " puntos") : "vacía");
+      b.innerHTML = `${esc(r.replace("turno_", "Turno "))}<small>${sub}</small>`;
+      b.onclick = () => { if (b.disabled) return; rondaSel = r; [...rs.children].forEach(x => x.classList.toggle("act", x === b)); };
       rs.appendChild(b); }
+    $i("abrirCaso").disabled = !rondaSel;
+    $i("abrirCaso").style.opacity = rondaSel ? 1 : .5;
+    if (tt && tt.estado === "en curso" && !tt.abierto) $i("elegidoTit").innerHTML += `<br><span style="color:#b45309">En curso: ningún turno abierto ahora; se habilitará cuando toque.</span>`;
     await pintarLista(); }
 
   async function sesion(caso, ronda){
