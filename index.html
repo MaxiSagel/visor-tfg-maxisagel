@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Visor TFG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--tinta:#1d1d1f;--gris:#6b6b70;--linea:#d9d9de;--fondo:#f4f4f6;--papel:#fff;--acento:#1f5fbf;--rojo:#d62828}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--tinta);background:var(--fondo)}
+body{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:auto 1fr 330px;grid-template-areas:"cab cab cab" "herr lienzo panel" "pie pie pie";overflow:hidden}
+header{grid-area:cab;display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--papel);border-bottom:1px solid var(--linea)}
+.flecha{font-size:22px;width:44px;height:36px;border:1px solid var(--linea);background:var(--papel);border-radius:4px;cursor:pointer;color:var(--tinta)}
+.flecha:disabled{opacity:.3;cursor:default}
+header .tit{min-width:0}
+#titulo{font-weight:600;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#salto{border:none;background:none;font:inherit;color:var(--gris);cursor:pointer;max-width:22vw}
+#info{color:var(--gris);font-size:12px}
+#guardado{margin-left:auto;font-size:12px;color:var(--gris);white-space:nowrap}
+#guardado.mal{color:var(--rojo);font-weight:600}
+#terminar{border:1px solid var(--tinta);background:var(--tinta);color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer}
+nav#herr{grid-area:herr;background:var(--papel);border-right:1px solid var(--linea);padding:6px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden;width:156px}
+nav#herr button.h{white-space:nowrap}
+nav#herr .grupo{font-size:10px;color:var(--gris);margin:4px 2px 0;text-transform:uppercase;letter-spacing:.04em}
+nav#herr button.h{display:flex;align-items:center;gap:6px;width:100%;padding:2px 6px;font-size:13px!important;border:1px solid transparent;background:none;border-radius:4px;cursor:pointer;font:inherit;text-align:left}
+nav#herr button.h:hover{background:var(--fondo)}
+nav#herr button.h.activa{border-color:var(--acento);background:#eaf0fb}
+nav#herr button.h svg{width:18px;height:18px;flex:none}
+nav#herr button.h kbd{margin-left:auto;font:11px ui-monospace,monospace;color:var(--gris)}
+.colores{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:2px}
+.colores button{height:22px;border:2px solid #fff;outline:1px solid var(--linea);border-radius:3px;cursor:pointer}
+.colores button.activa{outline:2px solid var(--tinta)}
+.fila{display:flex;gap:3px}
+.fila button{flex:1;padding:3px 0;border:1px solid var(--linea);background:var(--papel);border-radius:3px;cursor:pointer;font:inherit;font-size:12px}
+.fila button.activa{border-color:var(--acento);background:#eaf0fb}
+label.op{display:flex;align-items:center;gap:5px;font-size:12px;padding:1px 2px;cursor:pointer}
+#props{border-top:1px solid var(--linea);margin-top:6px;padding-top:4px;font-size:12px;display:none}
+#props select,#props input[type=number]{width:100%;font:inherit;margin:2px 0 4px}
+main{grid-area:lienzo;position:relative;overflow:hidden;background:#e9e9ec}
+#svg{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+#svg.panear{cursor:grab}#svg.dibujar{cursor:crosshair}
+aside{grid-area:panel;background:var(--papel);border-left:1px solid var(--linea);display:flex;flex-direction:column;min-height:0}
+aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris);margin:10px 12px 4px}
+aside textarea{font:inherit;width:100%;border:1px solid var(--linea);border-radius:4px;padding:6px;resize:vertical}
+#comentario{margin:0 12px;width:calc(100% - 24px);min-height:84px}
+.cabpuntos{display:flex;align-items:center;justify-content:space-between;margin-right:12px}
+.cabpuntos button,.acc button{font:inherit;font-size:12px;border:1px solid var(--linea);background:var(--papel);padding:3px 8px;border-radius:3px;cursor:pointer}
+#puntos{flex:1;overflow-y:auto;padding:0 12px 10px;min-height:0}
+.punto{border:1px solid var(--linea);border-left:4px solid var(--linea);border-radius:4px;padding:6px;margin-bottom:6px;cursor:pointer}
+.punto.activo{border-left-color:var(--acento);background:#f6f9ff}
+.punto .cab{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--gris);margin-bottom:3px}
+.punto .cab b{color:var(--tinta)}
+.punto .cab .quitar{margin-left:auto;border:none;background:none;color:var(--gris);cursor:pointer;text-decoration:underline;font:inherit;font-size:12px}
+.punto textarea{min-height:44px}
+.acc{display:none;gap:6px;padding:0 12px 8px;flex-wrap:wrap}
+footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;background:var(--papel);border-top:1px solid var(--linea)}
+#ayuda{flex:1;min-width:0;font-size:12px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;order:2}
+#barra{display:contents}
+#ant{order:1}#contador{order:1;font-size:13px;color:var(--gris);white-space:nowrap}#sig{order:1}#terminar{order:3}
+#bajarTeclado{position:fixed;right:8px;display:none;z-index:30;font:inherit;font-size:15px;padding:8px 14px;border:1px solid var(--acento);background:#fff;color:var(--acento);border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+#entradaTexto{position:absolute;display:none;min-width:220px;font:15px system-ui;border:2px solid var(--acento);border-radius:3px;padding:4px;background:#fff;z-index:5}
+#trazoBotones{position:absolute;top:10px;left:10px;display:none;gap:6px;z-index:4}
+#trazoBotones button{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--acento);background:#fff;color:var(--acento);border-radius:4px;cursor:pointer}
+#cargando{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--linea);padding:4px 12px;border-radius:4px;font-size:13px;color:var(--gris);display:none}
+#capaFin{position:fixed;inset:0;background:rgba(255,255,255,.94);display:none;align-items:center;justify-content:center;z-index:20;text-align:center;font-size:16px}
+#capaFin div{max-width:560px}
+.solo-ver nav#herr .dib{display:none}
+@media (max-width:1200px){body{grid-template-columns:auto 1fr 260px}}
+/* pantalla estrecha (panel del navegador, tableta en vertical): herramientas en una fila de iconos, lámina en medio y
+   panel de texto debajo */
+@media (max-width:900px){
+  body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) 30vh auto;grid-template-areas:"cab" "herr" "lienzo" "panel" "pie"}
+  header{flex-wrap:wrap;gap:6px;padding:4px 8px}
+  #info{display:none}#titulo{max-width:62vw;font-size:14px}#salto{display:none}
+  footer{flex-direction:column;align-items:stretch;gap:4px;padding:4px 8px calc(6px + env(safe-area-inset-bottom))}
+  #ayuda{order:0;font-size:11px}
+  header,footer,nav#herr,aside,main{min-width:0;max-width:100vw}
+  #barra{display:flex;align-items:center;gap:10px}
+  #barra .flecha{width:56px;height:42px;font-size:26px}
+  #terminar{margin-left:auto;padding:10px 18px;font-size:15px}
+  textarea,#entradaTexto,select,input{font-size:16px!important}
+  nav#herr{flex-direction:row;width:auto;overflow-x:auto;overflow-y:hidden;border-right:none;border-bottom:1px solid var(--linea);padding:3px;align-items:center}
+  nav#herr .grupo{display:none}
+  nav#herr button.h{font-size:0!important;width:auto;padding:5px;flex:none}
+  nav#herr button.h kbd{display:none}
+  nav#herr button.h svg{width:20px;height:20px}
+  .colores{display:flex;flex:none}.colores button,.colores input{width:22px!important;flex:none}
+  .fila{flex:none}.fila button{padding:3px 6px}
+  label.op{flex:none;white-space:nowrap}
+  #props{border-top:none;margin:0;padding:0 4px;flex:none;white-space:nowrap}#props select,#props input[type=number]{width:auto}
+  aside{border-left:none;border-top:1px solid var(--linea)}
+  #comentario{min-height:44px}
+}
+.solo-ver textarea{background:var(--fondo)}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f5fbf">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Visor TFG">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icono-192.png">
+<style>
+header{padding-top:max(6px, env(safe-area-inset-top))!important}
+#inicio{position:fixed;inset:0;z-index:40;background:#fff;display:none;flex-direction:column;align-items:center;overflow-y:auto;
+  padding:max(24px, env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom))}
+#inicio .caja{width:100%;max-width:520px}
+#inicio h1{font-size:22px;margin:8px 0 4px}#inicio p{color:#6b6b70;font-size:15px;margin:6px 0}
+#inicio .abrir{display:block;width:100%;margin:18px 0 8px;padding:14px;font:inherit;font-size:17px;font-weight:600;
+  color:#fff;background:#1f5fbf;border:none;border-radius:8px;text-align:center}
+#inicio .previa{display:block;width:100%;text-align:left;padding:12px;margin:6px 0;font:inherit;font-size:15px;
+  background:#fff;border:1px solid #d9d9de;border-radius:8px;color:#1d1d1f}
+#inicio .previa small{display:block;color:#6b6b70;font-size:13px;margin-top:2px}
+#inicio .error{color:#d62828;font-weight:600}
+#inicio ol{padding-left:20px;color:#1d1d1f;font-size:15px}#inicio li{margin:5px 0}
+#menuFin{position:fixed;inset:0;z-index:35;background:rgba(255,255,255,.97);display:none;align-items:center;justify-content:center;padding:22px}
+#menuFin .caja{width:100%;max-width:440px;text-align:center}
+#menuFin button{display:block;width:100%;margin:10px 0;padding:13px;font:inherit;font-size:16px;border-radius:8px;
+  border:1px solid #1f5fbf;background:#fff;color:#1f5fbf}
+#menuFin button.prim{background:#1f5fbf;color:#fff;font-weight:600}
+#menuFin p{color:#1d1d1f;font-size:15px}
+</style>
+</head>
+<body>
+<div id="inicio"><div class="caja">
+  <h1>Visor de corrección</h1>
+  <p>Dibuja y escribe encima de las láminas de la propuesta B. Todo se guarda en el móvil al momento.</p>
+  <label class="abrir" for="archivo">Abrir láminas (.visor)</label>
+  <input type="file" id="archivo" style="display:none">
+  <p id="inicioMsg"></p>
+  <div id="previas"></div>
+  <p style="margin-top:22px"><b>Cómo funciona</b></p>
+  <ol>
+    <li>En el PC, el programa «Visor de corrección» → «Preparar para el móvil» deja el archivo en Drive, en <i>TFG_CLOUDE › movil › para_el_movil</i>.</li>
+    <li>Aquí, «Abrir láminas» → Explorar → Google Drive → esa carpeta.</li>
+    <li>Corrige. Al acabar, «Enviar a Drive» → Guardar en Archivos → Google Drive → <i>TFG_CLOUDE › movil › del_movil</i>.</li>
+    <li>En el PC, «Importar del móvil» lo pasa al caso para la IA.</li>
+  </ol>
+</div></div>
+<div id="menuFin"><div class="caja">
+  <p id="finMsg"></p>
+  <button class="prim" id="mfEnviar">Enviar a Drive</button>
+  <button id="mfSeguir">Seguir corrigiendo</button>
+  <button id="mfOtras">Abrir otras láminas</button>
+</div></div>
+
+<header>
+  <div class="tit">
+    <div id="titulo">Cargando…</div>
+    <div id="info"></div>
+  </div>
+  <select id="salto" title="Ir a una lámina"></select>
+  <span id="guardado">—</span>
+</header>
+
+<nav id="herr">
+  <div class="grupo">Ver</div>
+  <button class="h" data-h="sel"><svg viewBox="0 0 20 20"><path d="M4 2l11 8-5 1 3 6-2 1-3-6-4 3z" fill="currentColor"/></svg>Seleccionar<kbd>V</kbd></button>
+  <button class="h" data-h="pan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2v16M2 10h16M10 2l-2 2M10 2l2 2M10 18l-2-2M10 18l2-2M2 10l2-2M2 10l2 2M18 10l-2-2M18 10l-2 2"/></svg>Desplazar<kbd>H</kbd></button>
+  <button class="h" data-h="deshacer" title="Deshacer (Ctrl+Z)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 4L3 8l4 4M3 8h9a5 5 0 0 1 0 10H8"/></svg>Deshacer<kbd>^Z</kbd></button>
+  <button class="h" data-h="rehacer" title="Rehacer (Ctrl+Y)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 4l4 4-4 4M17 8H8a5 5 0 0 0 0 10h4"/></svg>Rehacer<kbd>^Y</kbd></button>
+  <button class="h" data-h="encajar"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7V2h5M13 2h5v5M18 13v5h-5M7 18H2v-5"/></svg>Encajar<kbd>0</kbd></button>
+  <div class="grupo dib">Dibujar</div>
+  <button class="h dib" data-h="mano"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14c3-6 5 2 8-3s4-5 8-4"/></svg>Mano alzada<kbd>F</kbd></button>
+  <button class="h dib" data-h="linea"><svg viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.6"><path d="M3 17L17 3"/></svg>Línea<kbd>L</kbd></button>
+  <button class="h dib" data-h="polilinea"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 16l5-10 5 7 6-9"/></svg>Polilínea<kbd>P</kbd></button>
+  <button class="h dib" data-h="nurbs"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 16C5 2 12 2 18 12"/><circle cx="2" cy="16" r="1.4" fill="currentColor"/><circle cx="7" cy="3" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/></svg>Curva NURBS<kbd>N</kbd></button>
+  <button class="h dib" data-h="arco"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 16A9 9 0 0 1 17 16"/></svg>Arco (3 puntos)<kbd>A</kbd></button>
+  <button class="h dib" data-h="rect"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="10"/></svg>Rectángulo<kbd>R</kbd></button>
+  <button class="h dib" data-h="circulo"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/></svg>Círculo<kbd>C</kbd></button>
+  <button class="h dib" data-h="elipse"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="10" cy="10" rx="8" ry="5"/></svg>Elipse<kbd>E</kbd></button>
+  <button class="h dib" data-h="nube"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6a2 2 0 0 1 4 0a2 2 0 0 1 4 0a2 2 0 0 1 4 0a2 2 0 0 1 0 4a2 2 0 0 1 0 4a2 2 0 0 1-4 0a2 2 0 0 1-4 0a2 2 0 0 1-4 0a2 2 0 0 1 0-4a2 2 0 0 1 0-4"/></svg>Nube<kbd>U</kbd></button>
+  <button class="h dib" data-h="flecha"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17L16 4M9 4h7v7"/></svg>Flecha<kbd>W</kbd></button>
+  <div class="grupo dib">Marcas</div>
+  <button class="h dib" data-h="cruz"><svg viewBox="0 0 20 20" stroke="currentColor" stroke-width="2"><path d="M4 4l12 12M16 4L4 16"/></svg>Cruz<kbd>X</kbd></button>
+  <button class="h dib" data-h="tic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l5 5 9-11"/></svg>Tic<kbd>K</kbd></button>
+  <button class="h dib" data-h="pregunta"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><text x="10" y="14.5" font-size="12" text-anchor="middle" fill="currentColor" stroke="none">?</text></svg>Pregunta<kbd>Q</kbd></button>
+  <button class="h dib" data-h="exclamacion"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><text x="10" y="14.5" font-size="12" text-anchor="middle" fill="currentColor" stroke="none">!</text></svg>Aviso<kbd>Y</kbd></button>
+  <button class="h dib" data-h="texto"><svg viewBox="0 0 20 20"><text x="10" y="16" font-size="16" text-anchor="middle" font-weight="700" fill="currentColor">T</text></svg>Texto<kbd>T</kbd></button>
+  <div class="grupo dib">Estilo</div>
+  <div class="colores dib" id="colores"></div>
+  <div class="fila dib" id="grosores"><button data-g="1">fino</button><button data-g="2">medio</button><button data-g="4">grueso</button></div>
+  <label class="op dib"><input type="checkbox" id="discontinua">discontinua</label>
+  <label class="op dib"><input type="checkbox" id="relleno">relleno suave</label>
+  <div id="props" class="dib">
+    <div id="pNurbs">Grado <select id="grado"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+      <span id="pPeso">Peso del punto <input type="number" id="peso" min="0.1" max="10" step="0.1"></span></div>
+    <label class="op" id="pCerrada"><input type="checkbox" id="cerrada">cerrada</label>
+  </div>
+</nav>
+
+<main>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect id="papel" fill="#fff"/>
+    <image id="fondo" preserveAspectRatio="none"/>
+    <g id="capa"></g>
+    <g id="etiquetas"></g>
+    <g id="tmp"></g>
+    <g id="asas"></g>
+  </svg>
+  <textarea id="entradaTexto" rows="2" placeholder="Escribe y pulsa Intro"></textarea>
+  <div id="cargando">Cargando lámina…</div>
+  <div id="trazoBotones"><button id="acabar">Acabar trazo</button><button id="cerrarTrazo">Cerrar y acabar</button><button id="cancelar">Cancelar</button></div>
+</main>
+
+<aside>
+  <h3>Comentario de la lámina</h3>
+  <textarea id="comentario" placeholder="Lo que quieras decir de esta lámina en general"></textarea>
+  <div class="cabpuntos"><h3>Puntos</h3><button id="nuevoPunto" title="Los dibujos que hagas a partir de ahora irán con este punto (tecla +)">Nuevo punto</button></div>
+  <div class="acc" id="accSel"><button id="asignar">Asignar selección al punto activo</button><button id="soltar">Quitar del punto</button><button id="borrarSel">Borrar selección</button></div>
+  <div id="puntos"></div>
+</aside>
+
+<footer>
+  <div id="ayuda"></div>
+  <div id="barra">
+    <button class="flecha" id="ant" title="Lámina anterior (←, Re Pág)">‹</button>
+    <span id="contador"></span>
+    <button class="flecha" id="sig" title="Lámina siguiente (→, Av Pág)">›</button>
+    <button id="terminar" title="Exporta las anotaciones para la IA y cierra el visor">Terminar</button>
+  </div>
+</footer>
+<button id="bajarTeclado" title="Ocultar el teclado">Ocultar teclado ⌄</button>
+<div id="capaFin"><div id="finTexto"></div></div>
+
+<script>
+"use strict";
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+window.VISOR_ALMACEN = (() => {
+  const ST = "datos";
+  const idb = () => new Promise((ok, mal) => { const r = indexedDB.open("visor-tfg", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(ST); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); });
+  const poner = async (k, v) => { const db = await idb(); return new Promise((ok, mal) => { const t = db.transaction(ST, "readwrite");
+    t.objectStore(ST).put(v, k); t.oncomplete = () => ok(); t.onerror = () => mal(t.error); }); };
+  const leer = async k => { const db = await idb(); return new Promise((ok, mal) => { const q = db.transaction(ST).objectStore(ST).get(k);
+    q.onsuccess = () => ok(q.result); q.onerror = () => mal(q.error); }); };
+  const $i = id => document.getElementById(id);
+  let actual = null;          // {clave, paquete}
+
+  async function descomprimir(blob){
+    if (!("DecompressionStream" in window)) throw new Error("Este navegador es demasiado antiguo (hace falta iOS 16.4 o posterior).");
+    const txt = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    const p = JSON.parse(txt);
+    if (p.formato !== "tfg-movil-paquete/1") throw new Error("Ese archivo no son láminas del visor (.visor).");
+    if (p.linea !== "B") throw new Error("La app es para corregir la propuesta B.");
+    return p; }
+  function nuevas(a, b){          // por lámina, la versión con fecha más reciente
+    const out = {...(a || {})};
+    for (const [k, v] of Object.entries(b || {})) if (!out[k] || (v.actualizado || "") > (out[k].actualizado || "")) out[k] = v;
+    return out; }
+  async function preparar(blob){
+    const p = await descomprimir(blob), clave = `${p.caso}_${p.linea}_${p.ronda}`;
+    await poner("paq:" + clave, blob);
+    const locales = await leer("anot:" + clave);
+    const anot = nuevas(p.anotaciones, locales);
+    const lista = (await leer("lista")) || [];
+    const fila = {clave, caso: p.caso, ronda: p.ronda, creado: p.creado, abierto: new Date().toISOString().slice(0, 16).replace("T", " "), n: p.laminas.length};
+    await poner("lista", [fila].concat(lista.filter(x => x.clave !== clave)).slice(0, 12));
+    await poner("ultimo", clave);
+    actual = {clave, p};
+    return {caso: p.caso, linea: p.linea, ronda: p.ronda, autor: "usuario", solo_ver: false, colores: p.colores,
+      laminas: p.laminas.map(l => ({nombre: l.nombre, fondo: l.fondo, tipo: l.tipo, W: l.W, H: l.H, dibujos: l.dibujos,
+        url: l.svg ? URL.createObjectURL(new Blob([l.svg], {type: "image/svg+xml"})) : l.img})),
+      anotaciones: anot}; }
+  function pantallaInicio(msg, error){
+    return new Promise(async listo => {
+      const ini = $i("inicio"); ini.style.display = "flex";
+      $i("inicioMsg").textContent = msg || ""; $i("inicioMsg").className = error ? "error" : "";
+      const previas = $i("previas"); previas.innerHTML = "";
+      for (const f of (await leer("lista").catch(() => null)) || []){
+        const b = document.createElement("button"); b.className = "previa";
+        b.innerHTML = `<b>${f.caso} · ${f.ronda}</b><small>${f.n} láminas · abierto ${f.abierto}</small>`;
+        b.onclick = async () => { try { const blob = await leer("paq:" + f.clave); const e = await preparar(blob); ini.style.display = "none"; listo(e); }
+          catch (err){ $i("inicioMsg").textContent = err.message; $i("inicioMsg").className = "error"; } };
+        previas.appendChild(b); }
+      $i("archivo").onchange = async ev => { const f = ev.target.files[0]; if (!f) return;
+        $i("inicioMsg").textContent = "Abriendo…"; $i("inicioMsg").className = "";
+        try { const e = await preparar(f); ini.style.display = "none"; listo(e); }
+        catch (err){ $i("inicioMsg").textContent = err.message; $i("inicioMsg").className = "error"; }
+        ev.target.value = ""; }; }); }
+
+  async function cargar(){
+    const elegir = sessionStorage.getItem("visor-elegir"); sessionStorage.removeItem("visor-elegir");
+    if (!elegir){ try { const u = await leer("ultimo"); const blob = u && await leer("paq:" + u); if (blob) return await preparar(blob); } catch (e){} }
+    return pantallaInicio(); }
+  async function guardar(datos, todas){ if (actual) await poner("anot:" + actual.clave, todas); }
+
+  async function enviar(est){
+    const con = {};
+    for (const [k, v] of Object.entries(est.anotaciones)) if ((v.elementos || []).length || (v.comentario || "").trim() || (v.puntos || []).some(p => (p.texto || "").trim())) con[k] = v;
+    const n = Object.keys(con).length;
+    if (!n){ $i("finMsg").textContent = "Aún no hay nada dibujado ni escrito."; return; }
+    const d = new Date(), local = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19), sello = local.replace(/[-:]/g, "").replace("T", "_");
+    const datos = {formato: "tfg-movil-correcciones/1", caso: est.caso, linea: est.linea, ronda: est.ronda,
+      paquete_creado: actual.p.creado, enviado: local, anotaciones: con};
+    const nombre = `${actual.clave}__movil_${sello}.json`;
+    const archivo = new File([JSON.stringify(datos)], nombre, {type: "application/json"});
+    try {
+      if (navigator.canShare && navigator.canShare({files: [archivo]})){ await navigator.share({files: [archivo], title: nombre}); }
+      else { const a = document.createElement("a"); a.href = URL.createObjectURL(archivo); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
+      $i("finMsg").innerHTML = `<b>Listo:</b> ${n} lámina${n === 1 ? "" : "s"} en <i>${nombre}</i>.<br>Comprueba que lo has guardado en Google Drive › TFG_CLOUDE › movil › del_movil. Lo dibujado sigue en el móvil.`;
+    } catch (e){ if (e.name !== "AbortError") $i("finMsg").textContent = "No se pudo enviar: " + e.message; } }
+  function terminar(est){
+    $i("finMsg").innerHTML = "Para que tus correcciones lleguen al TFG, envíalas a Drive y guárdalas en <i>TFG_CLOUDE › movil › del_movil</i>.";
+    $i("menuFin").style.display = "flex";
+    $i("mfEnviar").onclick = () => enviar(est);
+    $i("mfSeguir").onclick = () => { $i("menuFin").style.display = "none"; };
+    $i("mfOtras").onclick = () => { sessionStorage.setItem("visor-elegir", "1"); location.reload(); }; }
+  return {cargar, guardar, terminar, textoTerminar: "Enviar"};
+})();
+</script>
+<script>
+"use strict";
+// ---------------------------------------------------------------- geometría (igual que nucleo.py)
+const G = {
+  nudos(n, p, cerrada){ if (cerrada) return [...Array(n + p + 1).keys()];
+    return [...Array(p + 1).fill(0), ...Array.from({length: Math.max(0, n - p - 1)}, (_, i) => i + 1), ...Array(p + 1).fill(n - p)]; },
+  nurbs(ctrl, pesos, grado = 3, cerrada = false, paso = 24){
+    let pts = ctrl.map(q => [q[0], q[1]]), w = (pesos && pesos.length === pts.length) ? pesos.slice() : pts.map(() => 1);
+    if (pts.length < 2) return pts;
+    let p;
+    if (cerrada && pts.length >= 3){ p = Math.min(grado, pts.length - 1); pts = pts.concat(pts.slice(0, p)); w = w.concat(w.slice(0, p)); }
+    else { cerrada = false; p = Math.min(grado, pts.length - 1); }
+    const n = pts.length, U = G.nudos(n, p, cerrada), a = U[p], b = U[n], out = [], total = Math.max(8, paso * (n - p));
+    for (let i = 0; i <= total; i++){
+      const t = a + (b - a) * i / total; let k = p;
+      while (k < n - 1 && t >= U[k + 1]) k++;
+      const d = []; for (let j = k - p; j <= k; j++) d.push([pts[j][0] * w[j], pts[j][1] * w[j], w[j]]);
+      for (let r = 1; r <= p; r++) for (let j = p; j >= r; j--){
+        const i0 = j + k - p, den = U[i0 + p + 1 - r] - U[i0], al = den === 0 ? 0 : (t - U[i0]) / den;
+        d[j] = [0, 1, 2].map(c => (1 - al) * d[j - 1][c] + al * d[j][c]); }
+      out.push([d[p][0] / d[p][2], d[p][1] / d[p][2]]); }
+    return out; },
+  arco3(a, m, b, paso = 48){
+    const [x1, y1] = a, [x2, y2] = m, [x3, y3] = b, D = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+    if (Math.abs(D) < 1e-9) return [a, b];
+    const s1 = x1 * x1 + y1 * y1, s2 = x2 * x2 + y2 * y2, s3 = x3 * x3 + y3 * y3;
+    const ux = (s1 * (y2 - y3) + s2 * (y3 - y1) + s3 * (y1 - y2)) / D, uy = (s1 * (x3 - x2) + s2 * (x1 - x3) + s3 * (x2 - x1)) / D;
+    const r = Math.hypot(x1 - ux, y1 - uy), T = q => Math.atan2(q[1] - uy, q[0] - ux), P2 = 2 * Math.PI, md = v => ((v % P2) + P2) % P2;
+    const t1 = T(a), d13 = md(T(b) - t1), d12 = md(T(m) - t1), bar = d12 <= d13 ? d13 : d13 - P2;
+    return Array.from({length: paso + 1}, (_, i) => [ux + r * Math.cos(t1 + bar * i / paso), uy + r * Math.sin(t1 + bar * i / paso)]); },
+  rect(a, b){ return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; },
+  nube(a, b){
+    const [x0, y0, x1, y1] = G.rect(a, b), lado = Math.min(x1 - x0, y1 - y0), onda = Math.max(2, Math.min(8, lado ? lado / 4 : 4)), out = [];
+    for (const [[xa, ya], [xb, yb]] of [[[x0, y0], [x1, y0]], [[x1, y0], [x1, y1]], [[x1, y1], [x0, y1]], [[x0, y1], [x0, y0]]]){
+      const L = Math.hypot(xb - xa, yb - ya), n = Math.max(1, Math.round(L / onda)), ux = L ? (xb - xa) / L : 0, uy = L ? (yb - ya) / L : 0, nx = uy, ny = -ux;
+      for (let i = 0; i < n; i++){
+        const pa = [xa + ux * L * i / n, ya + uy * L * i / n], pb = [xa + ux * L * (i + 1) / n, ya + uy * L * (i + 1) / n];
+        const pm = [(pa[0] + pb[0]) / 2 + nx * L / n * .35, (pa[1] + pb[1]) / 2 + ny * L / n * .35], s = G.arco3(pa, pm, pb, 10);
+        out.push(...(out.length ? s.slice(1) : s)); } }
+    return out; },
+  elipse(a, b, paso = 72){ const [x0, y0, x1, y1] = G.rect(a, b), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2;
+    return Array.from({length: paso + 1}, (_, i) => [cx + rx * Math.cos(2 * Math.PI * i / paso), cy + ry * Math.sin(2 * Math.PI * i / paso)]); },
+  circ(c, r, n = 72){ return Array.from({length: n + 1}, (_, i) => [c[0] + r * Math.cos(2 * Math.PI * i / n), c[1] + r * Math.sin(2 * Math.PI * i / n)]); },
+  trazos(e){
+    const t = e.tipo, P = e.pts, s = e.tam || 6, h = s / 2;
+    if (["mano", "linea", "polilinea"].includes(t)) return [P.concat(e.cerrada && P.length > 2 ? [P[0]] : [])];
+    if (t === "nurbs") return [G.nurbs(P, e.pesos, e.grado || 3, !!e.cerrada)];
+    if (t === "arco") return P.length >= 3 ? [G.arco3(P[0], P[1], P[2])] : [P];
+    if (t === "rect"){ const [x0, y0, x1, y1] = G.rect(P[0], P[1]); return [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]]; }
+    if (t === "circulo") return [G.circ(P[0], Math.hypot(P[1][0] - P[0][0], P[1][1] - P[0][1]))];
+    if (t === "elipse") return [G.elipse(P[0], P[1])];
+    if (t === "nube") return [G.nube(P[0], P[1])];
+    if (t === "flecha"){ const [x0, y0] = P[0], [x1, y1] = P[1], ang = Math.atan2(y1 - y0, x1 - x0), L = Math.max(2, Math.min(s * .6, Math.hypot(x1 - x0, y1 - y0) * .4));
+      return [[P[0], P[1]], [[x1 - L * Math.cos(ang - .45), y1 - L * Math.sin(ang - .45)], [x1, y1], [x1 - L * Math.cos(ang + .45), y1 - L * Math.sin(ang + .45)]]]; }
+    const [x, y] = P[0];
+    if (t === "cruz") return [[[x - h, y - h], [x + h, y + h]], [[x - h, y + h], [x + h, y - h]]];
+    if (t === "tic") return [[[x - h, y], [x - h * .25, y + h * .75], [x + h, y - h * .9]]];
+    if (t === "pregunta" || t === "exclamacion") return [G.circ([x, y], h * 1.2, 48)];
+    return []; },
+  caja(e){ let xs = [], ys = [];
+    for (const tr of G.trazos(e)) for (const q of tr){ xs.push(q[0]); ys.push(q[1]); }
+    if (e.tipo === "texto"){ const [x, y] = e.pts[0], s = e.tam || 5; xs.push(x, x + .55 * s * Math.max(1, (e.texto || "").length)); ys.push(y - s, y + .3 * s); }
+    if (!xs.length){ xs = e.pts.map(q => q[0]); ys = e.pts.map(q => q[1]); }
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; },
+  simplificar(pts, tol){
+    if (pts.length < 3) return pts;
+    const d2 = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+      let t = L ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+    let max = 0, idx = 0;
+    for (let i = 1; i < pts.length - 1; i++){ const d = d2(pts[i], pts[0], pts[pts.length - 1]); if (d > max){ max = d; idx = i; } }
+    if (max <= tol) return [pts[0], pts[pts.length - 1]];
+    return G.simplificar(pts.slice(0, idx + 1), tol).slice(0, -1).concat(G.simplificar(pts.slice(idx), tol)); }
+};
+
+// ---------------------------------------------------------------- estado
+const $ = id => document.getElementById(id), NS = "http://www.w3.org/2000/svg";
+const svg = $("svg"), capa = $("capa"), tmp = $("tmp"), asas = $("asas"), etiquetas = $("etiquetas");
+const AYUDAS = {
+  sel: "Clic en un dibujo para seleccionarlo (Mayús para añadir) · arrastra para moverlo · arrastra los cuadraditos para editar sus puntos · Supr borra · doble clic en un texto para cambiarlo",
+  pan: "Arrastra para desplazar · rueda para acercar · también: botón central o barra espaciadora con cualquier herramienta",
+  mano: "Dibuja arrastrando, como con un lápiz",
+  linea: "Arrastra de un extremo a otro (o clic y clic)", flecha: "Arrastra desde la cola hasta la punta (o clic y clic)",
+  polilinea: "Clic para cada vértice · doble clic o Intro termina · clic sobre el primero la cierra · Retroceso quita el último · Esc cancela",
+  nurbs: "Clic para cada punto de control · doble clic o Intro termina · clic sobre el primero la cierra · después, con Seleccionar, arrastra los puntos o cambia grado y pesos",
+  arco: "Tres clics: inicio, un punto del arco y final", rect: "Arrastra de una esquina a la opuesta", circulo: "Arrastra desde el centro hasta el borde",
+  elipse: "Arrastra el rectángulo que la contiene", nube: "Arrastra el rectángulo que quieres rodear con una nube de revisión",
+  cruz: "Clic donde está mal", tic: "Clic donde está bien", pregunta: "Clic donde tienes una duda", exclamacion: "Clic donde hay que fijarse",
+  texto: "Clic donde quieras escribir · Intro termina (Mayús+Intro, salto de línea) · Esc cancela"
+};
+const TECLAS = {v: "sel", h: "pan", f: "mano", l: "linea", p: "polilinea", n: "nurbs", a: "arco", r: "rect", c: "circulo", e: "elipse", u: "nube", w: "flecha", x: "cruz", k: "tic", q: "pregunta", y: "exclamacion", t: "texto"};
+const S = {est: null, idx: 0, lam: null, datos: null, vb: null, herr: "sel", color: null, grosor: 2, disc: false, relleno: false,
+  sel: new Set(), activo: null, hist: {}, tmp: null, arr: null, espacio: false, sucio: false, temporizador: null, asaPeso: null};
+const prefijo = () => { const m = /^turno_(\d+)/.exec(S.est.ronda); return m ? `I${m[1]}.` : "R"; };
+
+function el(tag, at, padre){ const n = document.createElementNS(NS, tag); for (const k in at) n.setAttribute(k, at[k]); if (padre) padre.appendChild(n); return n; }
+function camino(pts){ return pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(3) + " " + q[1].toFixed(3)).join(" "); }
+function mmPorPx(){ const m = svg.getScreenCTM(); return m ? 1 / m.a : 1; }
+function aMm(ev){ const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y]; }
+
+// ---------------------------------------------------------------- carga y navegación
+const EST = window.VISOR_ESTATICO || null;          // demo sin servidor: estado incrustado, guardado en el dispositivo
+const CLAVE = "visor-demo-anotaciones";
+const preguntar = m => EST ? true : confirm(m);
+const ALM = window.VISOR_ALMACEN || null;          // app del móvil: el almacén lo pone la app (IndexedDB y Drive)
+const horaLocal = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); };          // como el PC: hora local
+async function iniciar(){
+  if (ALM){ S.est = await ALM.cargar(); if (ALM.textoTerminar) $("terminar").textContent = ALM.textoTerminar; }
+  else if (EST){ S.est = EST; try { Object.assign(S.est.anotaciones, JSON.parse(localStorage.getItem(CLAVE) || "{}")); } catch (e){} }
+  else { const r = await fetch("/api/estado"); S.est = await r.json(); }
+  if (!S.est.laminas.length){ $("titulo").textContent = "La propuesta no tiene láminas"; return; }
+  if (S.est.solo_ver) document.body.classList.add("solo-ver");
+  S.color = Object.values(S.est.colores)[0];
+  const cs = $("colores");
+  for (const [nombre, hex] of Object.entries(S.est.colores)){
+    const b = document.createElement("button"); b.style.background = hex; b.title = nombre; b.dataset.c = hex;
+    b.onclick = () => { S.color = hex; pintarEstilo(); aplicarASel({color: hex}); }; cs.appendChild(b); }
+  const inp = document.createElement("input"); inp.type = "color"; inp.title = "otro color"; inp.style.cssText = "width:100%;height:22px;border:none;padding:0";
+  inp.oninput = () => { S.color = inp.value; pintarEstilo(); aplicarASel({color: inp.value}); }; cs.appendChild(inp);
+  S.est.laminas.forEach((l, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${i + 1}. ${l.nombre}`; $("salto").appendChild(o); });
+  pintarEstilo(); elegir(S.est.solo_ver ? "pan" : "sel"); abrir(0);
+}
+
+function abrir(i){
+  guardarYa();
+  S.idx = Math.max(0, Math.min(S.est.laminas.length - 1, i));
+  S.lam = S.est.laminas[S.idx];
+  S.datos = S.est.anotaciones[S.lam.nombre] || {formato: "tfg-anotaciones/1", caso: S.est.caso, linea: S.est.linea, ronda: S.est.ronda,
+    lamina: S.lam.nombre, fondo: S.lam.fondo, pagina_mm: [+S.lam.W.toFixed(2), +S.lam.H.toFixed(2)], autor: S.est.autor,
+    comentario: "", puntos: [], elementos: [], actualizado: null};
+  S.est.anotaciones[S.lam.nombre] = S.datos;
+  S.sel.clear(); S.tmp = null; S.activo = null; tmp.innerHTML = "";
+  const L = S.lam;
+  $("papel").setAttribute("width", L.W); $("papel").setAttribute("height", L.H);
+  const f = $("fondo"); f.setAttribute("width", L.W); f.setAttribute("height", L.H);
+  f.style.opacity = 0; $("cargando").style.display = "block";
+  f.onload = () => { f.style.opacity = 1; $("cargando").style.display = "none"; };
+  f.setAttribute("href", L.url);
+  const sig = S.est.laminas[S.idx + 1]; if (sig) (new Image()).src = sig.url;          // precarga la siguiente
+  $("titulo").textContent = L.nombre.replace(/_/g, " ");
+  $("info").textContent = `${S.est.caso} · propuesta ${S.est.linea} · ${S.est.ronda} · ${S.idx + 1} de ${S.est.laminas.length}` +
+    (L.dibujos && L.dibujos.length ? " · " + L.dibujos.map(d => `${d.titulo} (1:${d.escala})`).join(" · ") : "") + (S.est.solo_ver ? " · SOLO VER" : "");
+  $("salto").value = S.idx; $("contador").textContent = `${S.idx + 1} / ${S.est.laminas.length}`; $("ant").disabled = S.idx === 0; $("sig").disabled = S.idx === S.est.laminas.length - 1;
+  $("comentario").value = S.datos.comentario || ""; $("comentario").readOnly = S.est.solo_ver;
+  encajar(); pintar(); pintarPuntos(); estadoGuardado(S.datos.actualizado ? "Guardado " + S.datos.actualizado.slice(11) : "Sin cambios");
+}
+
+function encajar(){ const L = S.lam, m = Math.max(L.W, L.H) * .02; S.vb = [-m, -m, L.W + 2 * m, L.H + 2 * m]; aplicarVb(); }
+function aplicarVb(){ svg.setAttribute("viewBox", S.vb.join(" ")); pintarAsas(); }
+function zoom(f, c){ const [x, y, w, h] = S.vb, nw = Math.max(5, Math.min(S.lam.W * 4, w * f)), k = nw / w;
+  S.vb = [c[0] - (c[0] - x) * k, c[1] - (c[1] - y) * k, w * k, h * k]; aplicarVb(); }
+
+// ---------------------------------------------------------------- dibujo de la capa
+function estiloTrazo(e, n){ n.setAttribute("fill", e.relleno && ["rect", "circulo", "elipse", "nube", "polilinea", "nurbs"].includes(e.tipo) ? e.color : "none");
+  n.setAttribute("fill-opacity", ".15"); n.setAttribute("stroke", e.color); n.setAttribute("stroke-width", e.grosor);
+  n.setAttribute("stroke-linecap", "round"); n.setAttribute("stroke-linejoin", "round");
+  if (e.discontinua) n.setAttribute("stroke-dasharray", `${e.grosor * 6} ${e.grosor * 4}`); }
+
+function nodo(e, padre){
+  const g = el("g", {"data-id": e.id}, padre);
+  if (e.tipo === "texto"){
+    const t = el("text", {x: e.pts[0][0], y: e.pts[0][1], "font-size": e.tam, fill: e.color, "font-family": "Helvetica, Arial, sans-serif"}, g);
+    (e.texto || "").split("\n").forEach((ln, i) => { const s = el("tspan", {x: e.pts[0][0], dy: i ? e.tam * 1.15 : 0}, t); s.textContent = ln; });
+    const [x0, y0, x1, y1] = G.caja(e); el("rect", {x: x0, y: y0, width: x1 - x0, height: y1 - y0, fill: "transparent", class: "toque"}, g);
+  } else {
+    for (const tr of G.trazos(e)){ const p = el("path", {d: camino(tr)}, g); estiloTrazo(e, p);
+      el("path", {d: camino(tr), fill: "none", stroke: "transparent", "stroke-width": 14, "vector-effect": "non-scaling-stroke", class: "toque"}, g); }
+    if (e.tipo === "pregunta" || e.tipo === "exclamacion"){ const s = e.tam || 6;
+      const t = el("text", {x: e.pts[0][0], y: e.pts[0][1] + s * .36, "font-size": s, "text-anchor": "middle", fill: e.color, "font-family": "Helvetica, Arial, sans-serif", "font-weight": 700}, g);
+      t.textContent = e.tipo === "pregunta" ? "?" : "!"; }
+  }
+  if (S.sel.has(e.id)){ const [x0, y0, x1, y1] = G.caja(e), m = 4 * mmPorPx();
+    el("rect", {x: x0 - m, y: y0 - m, width: x1 - x0 + 2 * m, height: y1 - y0 + 2 * m, fill: "none", stroke: "#1f5fbf", "stroke-width": 1, "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke"}, g); }
+  if (S.activo && e.punto === S.activo) g.setAttribute("opacity", 1); else if (S.activo) g.setAttribute("opacity", .55);
+  return g; }
+
+function pintar(){
+  if (!S.tmp) $("trazoBotones").style.display = "none";
+  capa.innerHTML = ""; etiquetas.innerHTML = "";
+  for (const e of S.datos.elementos) nodo(e, capa);
+  const et = {};
+  for (const e of S.datos.elementos){ if (!e.punto) continue; const [, y0, x1] = G.caja(e);
+    if (!et[e.punto] || y0 < et[e.punto][1]) et[e.punto] = [x1, y0, e.color]; }
+  const k = mmPorPx();
+  for (const [id, [x, y, c]] of Object.entries(et)){
+    const s = 12 * k, g = el("g", {}, etiquetas), w = s * .62 * id.length + s * .6;
+    el("rect", {x: x + 2 * k, y: y - s * 1.35, width: w, height: s * 1.3, fill: "#fff", stroke: c, "stroke-width": 1, "vector-effect": "non-scaling-stroke", rx: 2 * k}, g);
+    const t = el("text", {x: x + 2 * k + s * .3, y: y - s * .32, "font-size": s, fill: c, "font-family": "Helvetica, Arial, sans-serif", "font-weight": 700}, g); t.textContent = id; }
+  pintarAsas(); pintarProps(); }
+
+function pintarAsas(){
+  asas.innerHTML = "";
+  if (!S.datos || S.sel.size !== 1 || S.est.solo_ver) return;
+  const e = elem([...S.sel][0]); if (!e) return;
+  const k = mmPorPx(), lado = 9 * k;
+  if (e.tipo === "nurbs" && e.pts.length > 1){ let pts = e.pts.concat(e.cerrada ? [e.pts[0]] : []);
+    el("path", {d: camino(pts), fill: "none", stroke: "#1f5fbf", "stroke-width": 1, "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke"}, asas); }
+  e.pts.forEach((q, i) => el("rect", {x: q[0] - lado / 2, y: q[1] - lado / 2, width: lado, height: lado, fill: S.asaPeso === i ? "#1f5fbf" : "#fff",
+    stroke: "#1f5fbf", "stroke-width": 1.2, "vector-effect": "non-scaling-stroke", "data-asa": i, style: "cursor:move"}, asas)); }
+
+function pintarProps(){
+  const e = S.sel.size === 1 ? elem([...S.sel][0]) : null, ok = e && ["nurbs", "polilinea"].includes(e.tipo) && !S.est.solo_ver;
+  $("props").style.display = ok ? "block" : "none";
+  $("accSel").style.display = S.sel.size && !S.est.solo_ver ? "flex" : "none";
+  if (!ok) return;
+  $("pNurbs").style.display = e.tipo === "nurbs" ? "block" : "none";
+  $("grado").value = e.grado || 3; $("cerrada").checked = !!e.cerrada;
+  $("pPeso").style.display = e.tipo === "nurbs" && S.asaPeso != null ? "inline" : "none";
+  if (e.tipo === "nurbs" && S.asaPeso != null) $("peso").value = (e.pesos || [])[S.asaPeso] ?? 1; }
+
+// ---------------------------------------------------------------- puntos
+function pintarPuntos(){
+  const c = $("puntos"); c.innerHTML = "";
+  if (!S.datos.puntos.length){ const p = document.createElement("div"); p.style.cssText = "color:#6b6b70;font-size:12px;margin:4px 0";
+    p.textContent = S.est.solo_ver ? "Sin puntos en esta lámina." : "Al dibujar se crea un punto. Escribe en él qué está mal; los dibujos que sigas haciendo van con ese punto hasta que pulses «Nuevo punto»."; c.appendChild(p); }
+  for (const p of S.datos.puntos){
+    const n = S.datos.elementos.filter(e => e.punto === p.id).length, d = document.createElement("div");
+    d.className = "punto" + (S.activo === p.id ? " activo" : "");
+    d.innerHTML = `<div class="cab"><b>${p.id}</b><span>${n} dibujo${n === 1 ? "" : "s"}</span>${S.est.solo_ver ? "" : '<button class="quitar">quitar punto</button>'}</div>`;
+    const ta = document.createElement("textarea"); ta.value = p.texto || ""; ta.placeholder = "Qué está mal o qué quieres que cambie"; ta.readOnly = S.est.solo_ver;
+    ta.oninput = () => { p.texto = ta.value; cambio(false); };
+    ta.onfocus = () => { if (S.activo !== p.id){ S.activo = p.id; marcarActivo(); pintar(); } };
+    d.appendChild(ta);
+    d.onclick = ev => { if (ev.target.classList.contains("quitar")) return quitarPunto(p.id); if (ev.target === ta) return;
+      S.activo = S.activo === p.id ? null : p.id; S.sel = new Set(S.datos.elementos.filter(e => e.punto === p.id && S.activo).map(e => e.id)); pintarPuntos(); pintar(); };
+    c.appendChild(d); } }
+function marcarActivo(){ document.querySelectorAll(".punto").forEach((d, i) => d.classList.toggle("activo", S.datos.puntos[i] && S.datos.puntos[i].id === S.activo)); }
+function siguienteId(){ const pre = prefijo(); let max = 0;
+  for (const d of Object.values(S.est.anotaciones)) for (const p of d.puntos || []) if (p.id.startsWith(pre)){ const v = parseInt(p.id.slice(pre.length)); if (v > max) max = v; }
+  return pre + (max + 1); }
+function nuevoPunto(enfocar = true){ if (S.est.solo_ver) return null; memo(); const p = {id: siguienteId(), texto: ""}; S.datos.puntos.push(p); S.activo = p.id; cambio(false); pintarPuntos(); pintar();
+  if (enfocar){ const tas = document.querySelectorAll("#puntos textarea"); tas[tas.length - 1].focus(); } return p; }
+function quitarPunto(id){ const p = S.datos.puntos.find(q => q.id === id), n = S.datos.elementos.filter(e => e.punto === id).length;
+  if ((p.texto || n) && !preguntar(`¿Quitar ${id}? Sus ${n} dibujos se quedan en la lámina sin punto (queda copia en el historial).`)) return;
+  memo(); S.datos.puntos = S.datos.puntos.filter(q => q.id !== id); S.datos.elementos.forEach(e => { if (e.punto === id) e.punto = null; });
+  if (S.activo === id) S.activo = null; cambio(); pintarPuntos(); }
+
+// ---------------------------------------------------------------- cambios, deshacer, guardado
+const elem = id => S.datos.elementos.find(e => e.id === id);
+function memo(){ const h = S.hist[S.lam.nombre] || (S.hist[S.lam.nombre] = {atras: [], adelante: []});
+  h.atras.push(JSON.stringify({p: S.datos.puntos, e: S.datos.elementos})); if (h.atras.length > 200) h.atras.shift(); h.adelante = []; }
+function deshacer(adelante){ const h = S.hist[S.lam.nombre]; if (!h) return; const de = adelante ? h.adelante : h.atras, a = adelante ? h.atras : h.adelante;
+  if (!de.length) return; a.push(JSON.stringify({p: S.datos.puntos, e: S.datos.elementos})); const v = JSON.parse(de.pop());
+  S.datos.puntos = v.p; S.datos.elementos = v.e; S.sel.clear(); cambio(); pintarPuntos(); }
+function cambio(repintar = true){ S.sucio = true; if (repintar) pintar(); estadoGuardado("Guardando…");
+  clearTimeout(S.temporizador); S.temporizador = setTimeout(guardarYa, 700); }
+function estadoGuardado(t, mal){ const g = $("guardado"); g.textContent = t; g.classList.toggle("mal", !!mal); }
+async function guardarYa(){
+  clearTimeout(S.temporizador); if (!S.sucio || !S.datos || S.est.solo_ver) return;
+  const datos = S.datos; S.sucio = false;
+  if (ALM){ S.sucio = false; const h = new Date().toTimeString().slice(0, 8); datos.actualizado = horaLocal();
+    try { await ALM.guardar(datos, S.est.anotaciones); estadoGuardado("Guardado en el móvil " + h); }
+    catch (e){ S.sucio = true; estadoGuardado("NO GUARDADO: " + e.message, true); } return; }
+  if (EST){ S.sucio = false; const h = new Date().toTimeString().slice(0, 8); datos.actualizado = h;
+    try { localStorage.setItem(CLAVE, JSON.stringify(S.est.anotaciones)); estadoGuardado("Guardado en este dispositivo " + h); }
+    catch (e){ estadoGuardado("Demo: no se puede guardar en este navegador", true); } return; }
+  try { const r = await fetch("/api/guardar/" + encodeURIComponent(datos.lamina), {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(datos)});
+    const j = await r.json(); if (!j.ok) throw new Error(j.error);
+    datos.actualizado = j.hora; if (datos === S.datos) estadoGuardado("Guardado " + j.hora.slice(11));
+  } catch (err){ S.sucio = true; estadoGuardado("NO GUARDADO: " + err.message + " · reintentando", true); S.temporizador = setTimeout(guardarYa, 3000); } }
+window.addEventListener("beforeunload", ev => { if (S.sucio){ guardarYa(); ev.preventDefault(); } });
+
+function nuevoId(){ let m = 0; for (const e of S.datos.elementos){ const v = parseInt(e.id.slice(1)); if (v > m) m = v; } return "e" + (m + 1); }
+function anadir(e){
+  memo();
+  if (!S.activo || !S.datos.puntos.some(p => p.id === S.activo)) nuevoPunto(false);
+  Object.assign(e, {id: nuevoId(), punto: S.activo, color: S.color, grosor: +(S.grosor * mmPorPx()).toFixed(3)});
+  if (S.disc) e.discontinua = true; if (S.relleno) e.relleno = true;
+  S.datos.elementos.push(e); cambio(); pintarPuntos();
+  const ta = [...document.querySelectorAll(".punto")].find(d => d.classList.contains("activo"));
+  if (ta && !ta.querySelector("textarea").value) ta.querySelector("textarea").placeholder = "Escribe aquí qué indica este dibujo"; }
+function aplicarASel(cambios){ if (!S.sel.size || S.est.solo_ver) return; memo();
+  for (const id of S.sel){ const e = elem(id); if (!e) continue;
+    if ("grosorPx" in cambios){ if (e.tipo === "texto" || ["cruz", "tic", "pregunta", "exclamacion"].includes(e.tipo)) continue; e.grosor = +(cambios.grosorPx * mmPorPx()).toFixed(3); }
+    if ("color" in cambios) e.color = cambios.color;
+    if ("discontinua" in cambios) cambios.discontinua ? e.discontinua = true : delete e.discontinua;
+    if ("relleno" in cambios) cambios.relleno ? e.relleno = true : delete e.relleno; }
+  cambio(); }
+function borrarSel(){ if (!S.sel.size) return; memo(); S.datos.elementos = S.datos.elementos.filter(e => !S.sel.has(e.id)); S.sel.clear(); S.asaPeso = null; cambio(); pintarPuntos(); }
+
+// ---------------------------------------------------------------- herramientas
+function elegir(h){
+  if (h === "encajar") return encajar();
+  if (h === "deshacer" || h === "rehacer") return deshacer(h === "rehacer");
+  if (S.est && S.est.solo_ver && !["sel", "pan"].includes(h)) return;
+  terminarTmp(false); S.herr = h;
+  document.querySelectorAll("button.h").forEach(b => b.classList.toggle("activa", b.dataset.h === h));
+  svg.classList.toggle("panear", h === "pan"); svg.classList.toggle("dibujar", !["sel", "pan"].includes(h));
+  $("ayuda").textContent = AYUDAS[h] || ""; }
+function pintarEstilo(){ document.querySelectorAll("#colores button").forEach(b => b.classList.toggle("activa", b.dataset.c === S.color));
+  document.querySelectorAll("#grosores button").forEach(b => b.classList.toggle("activa", +b.dataset.g === S.grosor)); }
+const tamMarca = () => (S.grosor === 1 ? 14 : S.grosor === 2 ? 24 : 40) * mmPorPx();
+const tamTexto = () => (S.grosor === 1 ? 11 : S.grosor === 2 ? 15 : 22) * mmPorPx();
+
+function pintarTmp(cursor){
+  const varios = S.tmp && ["polilinea", "nurbs", "arco"].includes(S.tmp.tipo);
+  $("trazoBotones").style.display = varios ? "flex" : "none"; $("cerrarTrazo").style.display = varios && S.tmp.tipo !== "arco" && S.tmp.pts.length >= 3 ? "" : "none";
+  $("acabar").style.display = varios && S.tmp.tipo !== "arco" ? "" : "none";
+  tmp.innerHTML = ""; if (!S.tmp) return;
+  const t = S.tmp, pts = cursor && ["polilinea", "nurbs", "arco"].includes(t.tipo) ? t.pts.concat([cursor]) : t.pts;
+  if (pts.length < 2 && t.tipo !== "mano") return;
+  const e = {tipo: t.tipo, pts: t.tipo === "arco" && pts.length === 2 ? pts : pts, color: S.color, grosor: S.grosor * mmPorPx(), tam: tamMarca(), discontinua: S.disc, grado: 3};
+  if (t.tipo === "arco" && pts.length < 3){ e.tipo = "linea"; }
+  for (const tr of G.trazos(e)){ const p = el("path", {d: camino(tr)}, tmp); estiloTrazo(e, p); }
+  if (["polilinea", "nurbs"].includes(t.tipo)){ const k = mmPorPx();
+    if (t.tipo === "nurbs") el("path", {d: camino(pts), fill: "none", stroke: "#1f5fbf", "stroke-width": 1, "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke"}, tmp);
+    t.pts.forEach(q => el("rect", {x: q[0] - 3 * k, y: q[1] - 3 * k, width: 6 * k, height: 6 * k, fill: "#fff", stroke: "#1f5fbf", "stroke-width": 1, "vector-effect": "non-scaling-stroke"}, tmp)); } }
+
+function terminarTmp(cerrar){
+  const t = S.tmp; S.tmp = null; tmp.innerHTML = ""; $("trazoBotones").style.display = "none";
+  if (!t) return;
+  if (["polilinea", "nurbs"].includes(t.tipo)){
+    if (t.pts.length >= 2){ const e = {tipo: t.tipo, pts: t.pts}; if (cerrar && t.pts.length >= 3) e.cerrada = true;
+      if (t.tipo === "nurbs"){ e.grado = 3; e.pesos = t.pts.map(() => 1); } anadir(e); } } }
+
+function cercaDe(a, b, px){ return Math.hypot(a[0] - b[0], a[1] - b[1]) < px * mmPorPx(); }
+
+const toques = new Map();
+function pellizco(){ const [a, b] = [...toques.values()]; return {d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2}; }
+svg.addEventListener("pointerdown", ev => {
+  if (ev.pointerType === "touch"){ toques.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+    if (toques.size === 2){          // el segundo dedo anula lo que empezó el primero y pasa a mover la lámina
+      if (S.arr && S.arr.modo === "mano"){ S.tmp = null; tmp.innerHTML = ""; }
+      if (S.arr && (S.arr.modo === "mover" || S.arr.modo === "asa")) deshacer(false);
+      if (S.arr && S.arr.modo === "caja"){ S.tmp = null; tmp.innerHTML = ""; }
+      S.pend = null; S.arr = {modo: "pellizco", ...pellizco()}; return; }
+    if (toques.size > 2) return;
+    if (DIFERIDAS.includes(S.herr)){ S.pend = {clientX: ev.clientX, clientY: ev.clientY, button: 0, shiftKey: false, target: ev.target, pointerId: ev.pointerId, preventDefault(){}}; return; } }
+  abajo(ev);
+});
+const DIFERIDAS = ["cruz", "tic", "pregunta", "exclamacion", "texto", "polilinea", "nurbs", "arco"];
+function abajo(ev){
+  if ($("entradaTexto").style.display === "block") return confirmarTexto();
+  try { svg.setPointerCapture(ev.pointerId); } catch (e){}
+  const p = aMm(ev);
+  if (ev.button === 1 || S.espacio || S.herr === "pan" || ev.button === 2){ S.arr = {modo: "pan", x: ev.clientX, y: ev.clientY, vb: S.vb.slice()}; ev.preventDefault(); return; }
+  if (ev.button !== 0) return;
+  const h = S.herr;
+  if (h === "sel"){
+    const asa = ev.target.getAttribute && ev.target.getAttribute("data-asa");
+    if (asa != null && !S.est.solo_ver){ memo(); S.asaPeso = +asa; S.arr = {modo: "asa", i: +asa, id: [...S.sel][0]}; pintarProps(); pintarAsas(); return; }
+    const g = ev.target.closest && ev.target.closest("#capa > g");
+    if (g){ const id = g.dataset.id;
+      if (ev.shiftKey){ S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id); } else if (!S.sel.has(id)){ S.sel = new Set([id]); S.asaPeso = null; }
+      const e = elem(id); if (e && e.punto && S.activo !== e.punto){ S.activo = e.punto; pintarPuntos(); }
+      if (!S.est.solo_ver){ memo(); S.arr = {modo: "mover", p, orig: [...S.sel].map(i => [i, JSON.parse(JSON.stringify(elem(i).pts))]), movido: false}; }
+      pintar(); return; }
+    S.sel.clear(); S.asaPeso = null; pintar(); return; }
+  if (h === "mano"){ S.tmp = {tipo: "mano", pts: [p]}; S.arr = {modo: "mano"}; return; }
+  if (["linea", "flecha", "rect", "circulo", "elipse", "nube"].includes(h)){
+    if (S.tmp && S.tmp.pendiente){ S.tmp.pts[1] = p; return acabarArrastre(); }
+    S.tmp = {tipo: h, pts: [p, p]}; S.arr = {modo: "caja", x: ev.clientX, y: ev.clientY}; return; }
+  if (["polilinea", "nurbs"].includes(h)){
+    if (!S.tmp) S.tmp = {tipo: h, pts: []};
+    if (S.tmp.pts.length >= 3 && cercaDe(p, S.tmp.pts[0], 9)) return terminarTmp(true);
+    S.tmp.pts.push(p); pintarTmp(p); return; }
+  if (h === "arco"){ if (!S.tmp) S.tmp = {tipo: "arco", pts: []}; S.tmp.pts.push(p);
+    // el orden de los clics es inicio, punto del arco, final = el de arco3(a, m, b)
+    if (S.tmp.pts.length === 3){ const pts = S.tmp.pts; S.tmp = null; tmp.innerHTML = ""; anadir({tipo: "arco", pts}); }
+    else pintarTmp(p); return; }
+  if (["cruz", "tic", "pregunta", "exclamacion"].includes(h)) return anadir({tipo: h, pts: [p], tam: +tamMarca().toFixed(3)});
+  if (h === "texto"){ ev.preventDefault(); return abrirTexto(p, null); }          // que el clic no le quite el foco
+}
+
+svg.addEventListener("pointermove", ev => {
+  if (toques.has(ev.pointerId)) toques.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  if (S.arr && S.arr.modo === "pellizco"){ if (toques.size < 2) return; const a = S.arr, n = pellizco(), k = mmPorPx();
+    S.vb = [S.vb[0] - (n.x - a.x) * k, S.vb[1] - (n.y - a.y) * k, S.vb[2], S.vb[3]]; aplicarVb();
+    if (a.d > 0 && n.d > 0) zoom(a.d / n.d, aMm({clientX: n.x, clientY: n.y}));
+    Object.assign(a, n); return; }
+  const p = aMm(ev), a = S.arr;
+  if (a && a.modo === "pan"){ const k = mmPorPx(); S.vb = [a.vb[0] - (ev.clientX - a.x) * k, a.vb[1] - (ev.clientY - a.y) * k, a.vb[2], a.vb[3]]; aplicarVb(); return; }
+  if (a && a.modo === "mano"){ const u = S.tmp.pts[S.tmp.pts.length - 1]; if (Math.hypot(p[0] - u[0], p[1] - u[1]) > .8 * mmPorPx()){ S.tmp.pts.push(p); pintarTmp(); } return; }
+  if (a && a.modo === "caja"){ S.tmp.pts[1] = p; pintarTmp(); return; }
+  if (S.tmp && S.tmp.pendiente){ S.tmp.pts[1] = p; pintarTmp(); return; }
+  if (a && a.modo === "asa"){ const e = elem(a.id); e.pts[a.i] = p; pintar(); return; }
+  if (a && a.modo === "mover"){ const dx = p[0] - a.p[0], dy = p[1] - a.p[1]; a.movido = true;
+    for (const [id, o] of a.orig){ const e = elem(id); e.pts = o.map(q => [q[0] + dx, q[1] + dy]); } pintar(); return; }
+  if (S.tmp && ["polilinea", "nurbs", "arco"].includes(S.tmp.tipo)) pintarTmp(p);
+  posicion(p);
+});
+// posición del cursor: en metros si la lámina guarda la relación con el dibujo (v5.7), si no, en mm de la lámina
+function posicion(p){
+  let t = `${p[0].toFixed(0)}, ${p[1].toFixed(0)} mm`;
+  for (const d of (S.lam && S.lam.dibujos) || []){ const c = d.ejes_mm; if (!c || p[0] < c[0] || p[0] > c[2] || p[1] < c[1] || p[1] > c[3]) continue;
+    const m = d.mundo, x = m[0] + (p[0] - c[0]) / (c[2] - c[0]) * (m[2] - m[0]), y = m[3] - (p[1] - c[1]) / (c[3] - c[1]) * (m[3] - m[1]);
+    t = `${d.titulo}: x ${x.toFixed(2)} m · y ${y.toFixed(2)} m`; break; }
+  $("ayuda").textContent = (AYUDAS[S.herr] || "") + "   ·   " + t; }
+function acabarArrastre(){ const t = S.tmp; S.tmp = null; tmp.innerHTML = "";
+  const [a, b] = t.pts; if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 2 * mmPorPx()) return;
+  const e = {tipo: t.tipo, pts: [a, b]}; if (t.tipo === "flecha") e.tam = +tamMarca().toFixed(3); anadir(e); }
+svg.addEventListener("pointercancel", ev => { toques.delete(ev.pointerId); if (S.arr && S.arr.modo === "pellizco" && toques.size < 2) S.arr = null; });
+svg.addEventListener("pointerup", ev => {
+  toques.delete(ev.pointerId);
+  if (S.arr && S.arr.modo === "pellizco"){ if (toques.size < 2) S.arr = null; return; }
+  if (S.pend && S.pend.pointerId === ev.pointerId){ const e = S.pend; S.pend = null; return abajo(e); }
+  const a = S.arr; S.arr = null;
+  if (!a) return;
+  if (a.modo === "mano"){ const t = S.tmp; S.tmp = null; tmp.innerHTML = ""; if (t.pts.length >= 2) anadir({tipo: "mano", pts: G.simplificar(t.pts, .6 * mmPorPx())}); return; }
+  if (a.modo === "caja"){ if (Math.hypot(ev.clientX - a.x, ev.clientY - a.y) < 4){ S.tmp.pendiente = true; return; } return acabarArrastre(); }
+  if (a.modo === "asa" || (a.modo === "mover" && a.movido)) return cambio();
+  if (a.modo === "mover"){ const h = S.hist[S.lam.nombre]; if (h) h.atras.pop(); }
+});
+svg.addEventListener("dblclick", ev => {
+  if (S.tmp && ["polilinea", "nurbs"].includes(S.tmp.tipo)){
+    const P = S.tmp.pts;          // el doble clic añade el último punto dos veces: quedarse con uno
+    while (P.length > 1 && cercaDe(P[P.length - 1], P[P.length - 2], 4)) P.pop();
+    return terminarTmp(false); }
+  if (S.herr === "sel" && !S.est.solo_ver){ const g = ev.target.closest && ev.target.closest("#capa > g"); const e = g && elem(g.dataset.id);
+    if (e && e.tipo === "texto") abrirTexto(e.pts[0], e); }
+});
+svg.addEventListener("wheel", ev => { ev.preventDefault(); zoom(Math.exp(ev.deltaY * (ev.ctrlKey ? .01 : .0018)), aMm(ev)); }, {passive: false});
+svg.addEventListener("contextmenu", ev => ev.preventDefault());
+new ResizeObserver(() => { if (S.lam) pintar(); }).observe(svg);
+
+// ---------------------------------------------------------------- texto sobre el dibujo
+let textoEnCurso = null;
+function abrirTexto(p, e){
+  const ta = $("entradaTexto"), m = svg.getScreenCTM(), rect = svg.getBoundingClientRect();
+  ta.style.left = (p[0] * m.a + m.e - rect.left) + "px"; ta.style.top = (p[1] * m.d + m.f - rect.top - 30) + "px";
+  ta.style.display = "block"; ta.value = e ? e.texto : ""; textoEnCurso = {p, e}; ta.focus(); setTimeout(() => ta.focus(), 30); }
+function confirmarTexto(){ const ta = $("entradaTexto"), v = ta.value.trim(), t = textoEnCurso; ta.style.display = "none"; textoEnCurso = null;
+  if (!t) return;
+  if (t.e){ if (v && v !== t.e.texto){ memo(); t.e.texto = v; cambio(); } return; }
+  if (v) anadir({tipo: "texto", pts: [t.p], texto: v, tam: +tamTexto().toFixed(3)}); }
+$("entradaTexto").addEventListener("keydown", ev => { ev.stopPropagation();
+  if (ev.key === "Enter" && !ev.shiftKey){ ev.preventDefault(); confirmarTexto(); }
+  if (ev.key === "Escape"){ $("entradaTexto").style.display = "none"; textoEnCurso = null; } });
+
+// ---------------------------------------------------------------- teclado y botones
+const escribiendo = () => ["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement.tagName);
+document.addEventListener("keydown", ev => {
+  if (ev.key === " " && !escribiendo()){ S.espacio = true; svg.classList.add("panear"); ev.preventDefault(); return; }
+  if (escribiendo()){ if (ev.key === "Escape") document.activeElement.blur(); return; }
+  const k = ev.key.toLowerCase();
+  if ((ev.ctrlKey || ev.metaKey) && k === "z"){ ev.preventDefault(); return deshacer(ev.shiftKey); }
+  if ((ev.ctrlKey || ev.metaKey) && k === "y"){ ev.preventDefault(); return deshacer(true); }
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === "ArrowRight" || ev.key === "PageDown") return abrir(S.idx + 1);
+  if (ev.key === "ArrowLeft" || ev.key === "PageUp") return abrir(S.idx - 1);
+  if (ev.key === "Escape"){ if (S.tmp){ S.tmp = null; pintarTmp(); } else { S.sel.clear(); S.asaPeso = null; pintar(); } return; }
+  if (ev.key === "Enter"){ if (S.tmp) terminarTmp(false); return; }
+  if (ev.key === "Backspace" && S.tmp && ["polilinea", "nurbs", "arco"].includes(S.tmp.tipo)){ S.tmp.pts.pop(); if (!S.tmp.pts.length) S.tmp = null; pintarTmp(); return; }
+  if ((ev.key === "Delete" || ev.key === "Backspace") && !S.est.solo_ver) return borrarSel();
+  if (ev.key === "+") return nuevoPunto();
+  if (k === "0") return encajar();
+  if (ev.key === "!") return elegir("exclamacion");
+  if (TECLAS[k]) elegir(TECLAS[k]);
+});
+document.addEventListener("keyup", ev => { if (ev.key === " "){ S.espacio = false; svg.classList.toggle("panear", S.herr === "pan"); } });
+document.querySelectorAll("button.h").forEach(b => b.onclick = () => elegir(b.dataset.h));
+document.querySelectorAll("#grosores button").forEach(b => b.onclick = () => { S.grosor = +b.dataset.g; pintarEstilo(); aplicarASel({grosorPx: S.grosor}); });
+$("discontinua").onchange = ev => { S.disc = ev.target.checked; aplicarASel({discontinua: S.disc}); };
+$("relleno").onchange = ev => { S.relleno = ev.target.checked; aplicarASel({relleno: S.relleno}); };
+$("grado").onchange = ev => { const e = elem([...S.sel][0]); memo(); e.grado = +ev.target.value; cambio(); };
+$("cerrada").onchange = ev => { const e = elem([...S.sel][0]); memo(); ev.target.checked ? e.cerrada = true : delete e.cerrada; cambio(); };
+$("peso").onchange = ev => { const e = elem([...S.sel][0]); if (S.asaPeso == null) return; memo();
+  e.pesos = e.pesos && e.pesos.length === e.pts.length ? e.pesos : e.pts.map(() => 1); e.pesos[S.asaPeso] = Math.max(.1, Math.min(10, +ev.target.value || 1)); cambio(); };
+$("comentario").oninput = ev => { S.datos.comentario = ev.target.value; cambio(false); };
+$("nuevoPunto").onclick = () => nuevoPunto();
+$("asignar").onclick = () => { if (!S.activo) nuevoPunto(false); memo(); for (const id of S.sel) elem(id).punto = S.activo; cambio(); pintarPuntos(); };
+$("soltar").onclick = () => { memo(); for (const id of S.sel) elem(id).punto = null; cambio(); pintarPuntos(); };
+$("borrarSel").onclick = borrarSel;
+const tactil = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+function colocarBoton(){ const b = $("bajarTeclado"), vv = window.visualViewport;
+  const abajo = vv ? vv.offsetTop + vv.height : innerHeight; b.style.top = Math.max(8, abajo - 52) + "px"; }
+document.addEventListener("focusin", ev => { const t = ev.target;
+  if (!tactil || !(t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && t.type === "number"))) return;
+  colocarBoton(); $("bajarTeclado").style.display = "block"; });
+document.addEventListener("focusout", () => setTimeout(() => { if (!["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)) $("bajarTeclado").style.display = "none"; }, 50));
+if (window.visualViewport){ visualViewport.addEventListener("resize", colocarBoton); visualViewport.addEventListener("scroll", colocarBoton); }
+$("bajarTeclado").addEventListener("pointerdown", ev => { ev.preventDefault();
+  if ($("entradaTexto").style.display === "block") confirmarTexto();
+  document.activeElement.blur(); $("bajarTeclado").style.display = "none"; window.scrollTo(0, 0); });
+$("acabar").onclick = () => terminarTmp(false); $("cerrarTrazo").onclick = () => terminarTmp(true);
+$("cancelar").onclick = () => { S.tmp = null; pintarTmp(); };
+$("ant").onclick = () => abrir(S.idx - 1); $("sig").onclick = () => abrir(S.idx + 1);
+$("salto").onchange = ev => abrir(+ev.target.value);
+$("terminar").onclick = async () => {
+  if (ALM){ await guardarYa(); return ALM.terminar(S.est); }
+  if (EST){ await guardarYa(); $("finTexto").innerHTML = "<b>Esto es una demostración.</b><br><br>En el visor real, «Terminar» exporta lo que has dibujado y escrito (PDF y PNG anotados, un recorte por punto y un resumen) para que la IA lo lea, y cierra el visor.<br><br><button onclick=\"document.getElementById('capaFin').style.display='none'\" style=\"font:inherit;padding:6px 14px;border:1px solid #1d1d1f;background:#fff;border-radius:4px\">Volver</button>"; $("capaFin").style.display = "flex"; return; }
+  if (S.est.solo_ver){ if (!confirm("¿Cerrar el visor?")) return; } else if (!confirm("¿Terminar? Se exportan las anotaciones para la IA y se cierra el visor. Puedes volver a abrirlo después y seguir.")) return;
+  await guardarYa();
+  const r = await fetch("/api/terminar", {method: "POST"}), j = await r.json();
+  $("finTexto").innerHTML = j.ok ? `<b>Terminado.</b><br><br>${j.resumen ? "Anotaciones exportadas en<br><code>" + j.resumen + "</code><br><br>" : ""}Ya puedes cerrar esta pestaña y decirle al orquestador que has acabado.`
+    : "No se pudo exportar: " + j.error;
+  $("capaFin").style.display = "flex"; };
+iniciar();
+</script>
+</body>
+</html>
