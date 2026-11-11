@@ -1,4 +1,4 @@
-const V = "visor-tfg-v11", F = ["./", "./index.html", "./manifest.webmanifest", "./icono-192.png", "./icono-512.png", "./apple-touch-icon.png", "./fuentes/inter-latin.woff2", "./fuentes/inter-latin-ext.woff2"];
+const V = "visor-tfg-v12", F = ["./", "./index.html", "./manifest.webmanifest", "./icono-192.png", "./icono-512.png", "./apple-touch-icon.png", "./fuentes/inter-latin.woff2", "./fuentes/inter-latin-ext.woff2"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(F))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== V).map(x => caches.delete(x))))); self.clients.claim(); });
 self.addEventListener("fetch", e => {          // primero la red (para recibir versiones nuevas); sin conexión, la copia guardada
