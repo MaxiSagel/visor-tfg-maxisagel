@@ -102,7 +102,9 @@ footer{grid-area:pie;display:flex;align-items:center;gap:12px;padding:5px 12px;b
 }
 .solo-ver textarea{background:var(--fondo)}
 </style>
-<script>if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) document.documentElement.classList.add("ios");</script>
+<script>if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) document.documentElement.classList.add("ios");
+// v14 (2026-11-12): app estática por defecto; el interruptor «Animaciones» del pie de la lista de casos la anima
+try { if (localStorage.getItem("tfg-mov") !== "animado") document.documentElement.classList.add("quieto"); } catch (e) { document.documentElement.classList.add("quieto"); }</script>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -167,6 +169,12 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
 @keyframes inSale{to{opacity:0;transform:perspective(1200px) translateZ(-180px) rotateX(7deg)}}
 #menuFin .caja{animation:inEntra .5s cubic-bezier(.2,.7,.2,1)}
 @media(prefers-reduced-motion:reduce){.fila.entra,#inicio.entra,#inicio.sale,#menuFin .caja{animation:none}#inicio .cab{transition:none}}
+html.quieto *,html.quieto *::before,html.quieto *::after{animation:none!important;transition:none!important}
+html.quieto .fila{transform:none!important;opacity:1!important}
+#movB{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px auto 0;font:inherit;font-size:12px;color:#6b6b70;background:none;border:none;padding:4px}
+#movB .sw{position:relative;width:26px;height:14px;border:1px solid currentColor;border-radius:999px}
+#movB .sw::after{content:"";position:absolute;top:2px;left:2px;width:8px;height:8px;border-radius:50%;background:currentColor}
+#movB[aria-checked=true]{color:#0a0a0a}#movB[aria-checked=true] .sw{background:#0a0a0a}#movB[aria-checked=true] .sw::after{left:14px;background:#fff}
 </style>
 </head>
 <body>
@@ -186,15 +194,24 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
     <label class="secundario" for="archivo" id="archivoEtq">Añadir o actualizar casos</label>
     <input type="file" id="archivo" multiple style="display:none">
     <div id="inicioMsg"></div>
+    <button id="movB" type="button" role="switch" aria-checked="false"><span class="sw" aria-hidden="true"></span><span>Animaciones</span></button>
   </div>
 </div>
 <script>
+// v14: interruptor de app estática / animada (se guarda en el móvil; sin recargar)
+(() => {
+  const H = document.documentElement, b = document.getElementById("movB"), pon = () => b.setAttribute("aria-checked", !H.classList.contains("quieto"));
+  pon(); b.onclick = () => { const q = H.classList.toggle("quieto"); try { localStorage.setItem("tfg-mov", q ? "estatico" : "animado"); } catch (e) {} pon();
+    if (q) document.querySelectorAll("#lista .fila").forEach(f => { f.style.transform = ""; f.style.opacity = ""; f.classList.remove("entra"); });
+    document.getElementById("inicio").style.removeProperty("--r"); };
+})();
 // v12: profundidad al desplazar la lista de casos (título que se recoge, filas que se inclinan) y entrada en cascada.
 (() => {
   const L = document.getElementById("lista"), I = document.getElementById("inicio");
   if (!L || !I || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   let raf = 0;
-  const pinta = () => { raf = 0;
+  const quieto = () => document.documentElement.classList.contains("quieto");
+  const pinta = () => { raf = 0; if (quieto()) return;
     const st = L.scrollTop, top = L.getBoundingClientRect().top, h = L.clientHeight;
     I.style.setProperty("--r", Math.min(1, st / 70).toFixed(3));
     for (const f of L.children){
@@ -208,7 +225,7 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
   const pide = () => { if (!raf) raf = requestAnimationFrame(pinta); };
   L.addEventListener("scroll", pide, {passive: true}); addEventListener("resize", pide);
   new MutationObserver(ms => { let k = 0; const tecleando = document.activeElement === document.getElementById("buscar");          // al teclear en el buscador, sin cascada
-    for (const m of ms) for (const n of m.addedNodes) if (!tecleando && n.classList && n.classList.contains("fila")) { n.style.setProperty("--k", Math.min(k++, 10)); n.classList.add("entra");
+    for (const m of ms) for (const n of m.addedNodes) if (!tecleando && !quieto() && n.classList && n.classList.contains("fila")) { n.style.setProperty("--k", Math.min(k++, 10)); n.classList.add("entra");
       n.addEventListener("animationend", () => n.classList.remove("entra"), {once: true}); }
     pide(); }).observe(L, {childList: true});
 })();
@@ -661,7 +678,7 @@ window.VISOR_ALMACEN = (() => {
   // v12: la lista se hunde hacia el fondo y deja ver el visor (sin movimiento si el sistema lo pide)
   function salirInicio(){
     const el = $i("inicio"); el.classList.remove("entra");
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches){ el.style.display = "none"; return; }
+    if (document.documentElement.classList.contains("quieto") || matchMedia("(prefers-reduced-motion: reduce)").matches){ el.style.display = "none"; return; }
     el.classList.add("sale"); setTimeout(() => { if (el.classList.contains("sale")){ el.style.display = "none"; el.classList.remove("sale"); } }, 400); }
   function pantallaInicio(){
     return new Promise(listo => {
