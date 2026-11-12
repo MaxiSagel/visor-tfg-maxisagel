@@ -157,17 +157,18 @@ html.ios #capaVolver,html.ios #menuFin{padding-top:60px!important}
 #inicio .tits{overflow:hidden;max-height:calc(84px - var(--r,0) * 56px)}
 #inicio h1{font-size:min(34px,7.4vw);white-space:nowrap;line-height:1.05;letter-spacing:-.045em;transform-origin:0 0;transform:scale(calc(1 - var(--r,0) * .4))}
 #inicio .sub{margin:8px 0 12px;opacity:calc(1 - var(--r,0) * 1.6);transform:translateY(calc(var(--r,0) * -14px))}
-#lista{perspective:900px;padding-top:12px}
-.fila{border-radius:14px;padding:14px 15px;margin-bottom:10px;transform-origin:50% 100%;will-change:transform,opacity;transition:border-color .2s,box-shadow .2s}
+#lista{padding-top:12px}
+.fila{border-radius:14px;padding:14px 15px;margin-bottom:10px;transition:border-color .2s,box-shadow .2s}
 .fila .obra{font-size:17px;letter-spacing:-.015em}
 .fila:active{transform:scale(.985)!important}
-.fila.entra{animation:filaEntra .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--k,0) * 55ms)}
-@keyframes filaEntra{from{opacity:0;transform:perspective(800px) translateY(26px) rotateX(-16deg)}to{opacity:1;transform:none}}
-#inicio.entra{animation:inEntra .55s cubic-bezier(.2,.7,.2,1)}
-#inicio.sale{animation:inSale .4s cubic-bezier(.4,0,.2,1) forwards;pointer-events:none}
-@keyframes inEntra{from{opacity:0;transform:perspective(1200px) translateY(40px) rotateX(-7deg)}to{opacity:1;transform:none}}
-@keyframes inSale{to{opacity:0;transform:perspective(1200px) translateZ(-180px) rotateX(7deg)}}
-#menuFin .caja{animation:inEntra .5s cubic-bezier(.2,.7,.2,1)}
+/* v15 (2026-11-12): movimientos sobrios: fundidos y desplazamientos cortos, sin giros en 3D */
+.fila.entra{animation:filaEntra .45s ease both;animation-delay:calc(var(--k,0) * 30ms)}
+@keyframes filaEntra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#inicio.entra{animation:inEntra .3s ease}
+#inicio.sale{animation:inSale .25s ease forwards;pointer-events:none}
+@keyframes inEntra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes inSale{to{opacity:0}}
+#menuFin .caja{animation:inEntra .3s ease}
 @media(prefers-reduced-motion:reduce){.fila.entra,#inicio.entra,#inicio.sale,#menuFin .caja{animation:none}#inicio .cab{transition:none}}
 html.quieto *,html.quieto *::before,html.quieto *::after{animation:none!important;transition:none!important}
 html.quieto .fila{transform:none!important;opacity:1!important}
@@ -205,7 +206,7 @@ html.quieto .fila{transform:none!important;opacity:1!important}
     if (q) document.querySelectorAll("#lista .fila").forEach(f => { f.style.transform = ""; f.style.opacity = ""; f.classList.remove("entra"); });
     document.getElementById("inicio").style.removeProperty("--r"); };
 })();
-// v12: profundidad al desplazar la lista de casos (título que se recoge, filas que se inclinan) y entrada en cascada.
+// v12: título que se recoge al desplazar la lista de casos y entrada breve de las filas (v15: sin inclinar las filas).
 (() => {
   const L = document.getElementById("lista"), I = document.getElementById("inicio");
   if (!L || !I || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -219,9 +220,7 @@ html.quieto .fila{transform:none!important;opacity:1!important}
       const r = f.getBoundingClientRect(), y = r.top - top, alto = r.height || 1;
       const k = Math.max(0, Math.min(1, (12 - y) / (alto + 12)));                // se va por arriba
       const k2 = Math.max(0, Math.min(1, (y + alto * .55 - h) / alto));           // asoma por abajo
-      if (k > 0) { f.style.transform = `rotateX(${(k * 34).toFixed(1)}deg) scale(${(1 - k * .1).toFixed(3)})`; f.style.opacity = (1 - k * .85).toFixed(3); }
-      else if (k2 > 0) { f.style.transform = `translateY(${(k2 * 22).toFixed(1)}px) scale(${(1 - k2 * .05).toFixed(3)})`; f.style.opacity = (1 - k2 * .55).toFixed(3); }
-      else if (f.style.transform) { f.style.transform = ""; f.style.opacity = ""; } } };
+      if (f.style.transform) { f.style.transform = ""; f.style.opacity = ""; } } };          // v15: las filas ya no se inclinan
   const pide = () => { if (!raf) raf = requestAnimationFrame(pinta); };
   L.addEventListener("scroll", pide, {passive: true}); addEventListener("resize", pide);
   new MutationObserver(ms => { let k = 0; const tecleando = document.activeElement === document.getElementById("buscar");          // al teclear en el buscador, sin cascada
